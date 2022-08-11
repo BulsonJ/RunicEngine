@@ -10,3 +10,4 @@ file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "src/*.h")
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 
 target_link_libraries(${PROJECT_NAME} runic_engine)
+target_include_directories(${PROJECT_NAME} PRIVATE ${HEADER_FILES}) 

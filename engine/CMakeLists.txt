@@ -15,37 +15,8 @@ source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES})
 # add external libraries
 add_subdirectory(external)
 
-target_include_directories(${PROJECT_NAME}
-    PUBLIC 
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        glm
-        vk-bootstrap
-        vma
-        imgui 
-        stb_image
-        spdlog
-        tinyobjloader
-        Vulkan::Vulkan
-        SDL2
-        Tracy::TracyClient
-    PRIVATE
-)
-
-target_link_libraries(${PROJECT_NAME}
-    PUBLIC
-        glm
-        vk-bootstrap
-        vma
-        imgui 
-        stb_image
-        spdlog
-        tinyobjloader
-        Vulkan::Vulkan
-        SDL2
-        Tracy::TracyClient
-)
-
+target_include_directories(${PROJECT_NAME}  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} vk-bootstrap vma glm imgui stb_image spdlog tinyobjloader ${Vulkan_LIBRARIES} SDL2 TracyClient)
 
 ## Shader compiler CMAKE code thanks to VBlanco: https://vkguide.dev/
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
