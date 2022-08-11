@@ -1,9 +1,10 @@
 #pragma once
 
+#include "Runic/Core.h"
 #include "Graphics/Renderer.h"
 #include "RenderableTypes.h"
 
-class Engine
+class RUNIC_API Engine
 {
 public:
 	void init();

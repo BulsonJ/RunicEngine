@@ -8,15 +8,19 @@ find_package(Vulkan REQUIRED)
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "include/*.h")
+file(GLOB_RECURSE RNC_FILES CONFIGURE_DEPENDS "*.h")
 
-add_library(${PROJECT_NAME} ${SRC_FILES} ${HEADER_FILES})
-source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES})
+add_library(${PROJECT_NAME} SHARED ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE RNC_PLATFORM_WINDOWS RNC_BUILD_DLL)
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES})
 
 # add external libraries
 add_subdirectory(external)
 
-target_include_directories(${PROJECT_NAME}  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} vk-bootstrap vma glm imgui stb_image spdlog tinyobjloader ${Vulkan_LIBRARIES} SDL2 TracyClient)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include ${Vulkan_INCLUDE_DIRS})
+##target_link_libraries(${PROJECT_NAME} PUBLIC glm vk-bootstrap vma imgui stb_image spdlog tinyobjloader ${Vulkan_LIBRARIES} SDL2 TracyClient)
+target_link_libraries(${PROJECT_NAME}  vk-bootstrap vma glm imgui stb_image spdlog tinyobjloader)
+target_link_libraries(${PROJECT_NAME}  Vulkan::Vulkan SDL2 Tracy::TracyClient)
 
 ## Shader compiler CMAKE code thanks to VBlanco: https://vkguide.dev/
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
@@ -48,4 +52,6 @@ add_custom_target(
     )
 
 add_dependencies(${PROJECT_NAME} Shaders)
+
+
    

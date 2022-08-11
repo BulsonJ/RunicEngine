@@ -1,9 +1,9 @@
-#include "Engine.h"
+#include "Runic/Engine.h"
 #include <SDL.h>
 #include <Tracy.hpp>
 #include <backends/imgui_impl_sdl.h>
 
-#include "Log.h"
+#include "Runic/Log.h"
 
 void Engine::init() {
 	ZoneScoped;

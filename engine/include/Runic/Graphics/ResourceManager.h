@@ -4,8 +4,8 @@
 #include <vk_mem_alloc.h>
 #include <array>
 
-#include "Graphics/Common.h"
-#include "Structures/Slotmap.h"
+#include "Runic/Graphics/Common.h"
+#include "Runic/Structures/Slotmap.h"
 
 
 struct BufferCreateInfo

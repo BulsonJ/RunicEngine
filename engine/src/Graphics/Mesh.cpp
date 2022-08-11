@@ -1,10 +1,10 @@
-#include "Mesh.h"
+#include "Runic/Mesh.h"
 
 #include <iostream>
 #include <array>
 #include <tiny_obj_loader.h>
 
-#include "Log.h"
+#include "Runic/Log.h"
 
 RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateTriangle() {
 	RenderableTypes::MeshDesc triangleMesh;

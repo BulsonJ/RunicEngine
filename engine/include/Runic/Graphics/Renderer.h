@@ -8,11 +8,11 @@
 #include <imgui.h>
 #include <unordered_map>
 
-#include "PipelineBuilder.h"
-#include "ResourceManager.h"
-#include "Mesh.h"
-#include "DeletionQueue.h"
-#include "RenderableTypes.h"
+#include "Runic/Graphics/PipelineBuilder.h"
+#include "Runic/Graphics/ResourceManager.h"
+#include "Runic/Mesh.h"
+#include "Runic/DeletionQueue.h"
+#include "Runic/RenderableTypes.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;

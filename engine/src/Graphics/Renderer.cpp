@@ -1,4 +1,4 @@
-#include "Graphics/Renderer.h"
+#include "Runic/Graphics/Renderer.h"
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -23,10 +23,10 @@
 #include <iostream>
 #include <memory>
 
-#include "Graphics/VulkanInit.h"
-#include "Editor.h"
-#include "Log.h"
-#include "RenderableTypes.h"
+#include "Runic/Graphics/VulkanInit.h"
+#include "Runic/Editor.h"
+#include "Runic/Log.h"
+#include "Runic/RenderableTypes.h"
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \

@@ -1,7 +1,7 @@
-#include "RenderableTypes.h"
+#include "Runic/RenderableTypes.h"
 
 #include <Tracy.hpp>
-#include "Log.h"
+#include "Runic/Log.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

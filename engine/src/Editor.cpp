@@ -1,9 +1,9 @@
-#include "Editor.h"
+#include "Runic/Editor.h"
 
 #include <imgui_internal.h.>
 #include <backends/imgui_impl_vulkan.h>
 
-#include "Log.h"
+#include "Runic/Log.h"
 #include <memory>
 
 static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
