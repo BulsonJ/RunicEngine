@@ -61,7 +61,7 @@ void Engine::setupScene() {
 	LOG_CORE_INFO("Scene setup.");
 }
 
-void Engine::run()
+void Engine::run(std::function<void()> applicationMain)
 {
 	bool bQuit = { false };
 	SDL_Event e;
@@ -82,6 +82,7 @@ void Engine::run()
 			}
 		}
 		rend.draw(renderObjects);
+		applicationMain();
 	}
 }
 

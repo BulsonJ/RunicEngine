@@ -4,11 +4,13 @@
 #include "Graphics/Renderer.h"
 #include "RenderableTypes.h"
 
+#include <functional>
+
 class RUNIC_API Engine
 {
 public:
 	void init();
-	void run();
+	void run(std::function<void()> main);
 	void deinit();
 
 private:
