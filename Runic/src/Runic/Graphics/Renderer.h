@@ -16,6 +16,7 @@
 #include "Runic/RenderObject.h"
 #include "Runic/Mesh.h"
 #include "Runic/Texture.h"
+#include "Runic/Scene/Camera.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
@@ -161,7 +162,7 @@ namespace Runic
 		void deinit();
 
 		// Public rendering API
-		void draw(const std::vector<std::shared_ptr<RenderObject>>& renderObjects);
+		void draw(Camera* const camera, const std::vector<std::shared_ptr<RenderObject>>& renderObjects);
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 
@@ -223,7 +224,7 @@ namespace Runic
 		VkDescriptorSetLayout sceneSetLayout;
 		VkDescriptorPool scenePool;
 
-		GPUData::Camera camera;
+		Camera* currentCamera;
 		GPUData::DirectionalLight sunlight;
 
 		Slotmap<RenderMesh> meshes;

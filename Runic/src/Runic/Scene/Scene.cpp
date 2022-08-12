@@ -1,4 +1,4 @@
-#include "Runic/Scene.h"
+#include "Runic/Scene/Scene.h"
 
 using namespace Runic;
 

@@ -3,7 +3,7 @@
 #include "Runic/Core.h"
 #include "Graphics/Renderer.h"
 
-#include "Runic/Scene.h"
+#include "Runic/Scene/Scene.h"
 
 namespace Runic
 {

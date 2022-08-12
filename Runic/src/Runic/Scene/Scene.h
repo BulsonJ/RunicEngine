@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Runic/RenderObject.h"
+#include "Runic/Scene/Camera.h"
 
 namespace Runic
 {
@@ -12,6 +13,8 @@ namespace Runic
 		friend class Engine;
 	public:
 		std::shared_ptr<RenderObject> AddRenderObject();
+
+		std::unique_ptr<Camera> camera;
 	private:
 		std::vector<std::shared_ptr<RenderObject>> renderObjects;
 	};

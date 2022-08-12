@@ -79,16 +79,13 @@ void Renderer::init()
 void Renderer::initShaderData()
 {
 	ZoneScoped;
-	camera.proj = glm::perspective(glm::radians(90.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-	camera.proj[1][1] *= -1;
-	camera.pos = { 6.0f,3.0f,6.0f,0.0f };
 	Editor::lightDirection = &sunlight.direction;
 	Editor::lightColor = &sunlight.color;
 	Editor::lightAmbientColor = &sunlight.ambientColor;
 }
 
 void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_ptr<RenderObject>>& renderObjects)
-{	
+{
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
 	const Runic::RenderObject* FIRST = renderObjects.data()->get();
@@ -125,14 +122,12 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_pt
 	}
 	// binding 1
 		//slot 0 - camera
-	camera.view =
-		glm::lookAt({ camera.pos.x,camera.pos.y,camera.pos.z },
-			glm::vec3(0.0f, -0.5f, 0.0f),
-			UP_DIR);
 	//const float rotationSpeed = 0.5f;
 	//camera.view = glm::rotate(camera.view, (frameNumber / 120.0f) * rotationSpeed, UP_DIR);
 	GPUData::Camera* cameraSSBO = (GPUData::Camera*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
-	*cameraSSBO = camera;
+	cameraSSBO->view = currentCamera->BuildViewMatrix();
+	cameraSSBO->proj = currentCamera->BuildProjMatrix();
+	cameraSSBO->pos = {currentCamera->GetPosition(), 0.0f};
 		//slot 1 - directionalLight
 	GPUData::DirectionalLight* dirLightSSBO = (GPUData::DirectionalLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().dirLightBuffer).ptr;
 	*dirLightSSBO = sunlight;
@@ -188,9 +183,11 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_pt
 	}
 }
 
-void Renderer::draw(const std::vector<std::shared_ptr<RenderObject>>& renderObjects)
+void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<RenderObject>>& renderObjects)
 {
 	ZoneScoped;
+
+	currentCamera = camera;
 
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL2_NewFrame(window.window);

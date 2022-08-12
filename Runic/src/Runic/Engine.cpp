@@ -61,6 +61,8 @@ void Engine::setupScene() {
 		}
 	}
 
+	scene.camera = std::make_unique<Camera>();
+
 	LOG_CORE_INFO("Scene setup.");
 }
 
@@ -83,8 +85,36 @@ void Engine::run()
 				rend.window.resized = true;
 				break;
 			}
+			const float speed = 0.1f;
+			if (e.type == SDL_KEYDOWN)
+			{
+				if (e.key.keysym.sym == SDLK_w)
+				{
+					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, 0.0f, -1.0f });
+				}
+				if (e.key.keysym.sym == SDLK_s)
+				{
+					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, 0.0f, 1.0f });
+				}
+				if (e.key.keysym.sym == SDLK_a)
+				{
+					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ -1.0f, 0.0f, 0.0f });
+				}
+				if (e.key.keysym.sym == SDLK_d)
+				{
+					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 1.0f, 0.0f, 0.0f });
+				}
+				if (e.key.keysym.sym == SDLK_q)
+				{
+					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, -1.0f, 0.0f });
+				}
+				if (e.key.keysym.sym == SDLK_e)
+				{
+					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, 1.0f, 0.0f });
+				}
+			}
 		}
-		rend.draw(scene.renderObjects);
+		rend.draw(scene.camera.get(), scene.renderObjects);
 	}
 }
 
