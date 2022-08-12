@@ -4,15 +4,13 @@
 #include "Graphics/Renderer.h"
 #include "Runic/RenderObject.h"
 
-#include <functional>
-
 namespace Runic
 {
-	class RUNIC_API Engine
+	class Engine
 	{
 	public:
 		void init();
-		void run(std::function<void()> main);
+		void run();
 		void deinit();
 
 	private:

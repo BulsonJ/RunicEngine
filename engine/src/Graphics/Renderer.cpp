@@ -745,7 +745,7 @@ void Renderer::initImgui()
 	ImGui_ImplVulkan_Init(&init_info, imguiPass);
 	
 	ImGuiIO& io = ImGui::GetIO();
-	io.Fonts->AddFontFromFileTTF("../assets/fonts/Roboto-Medium.ttf", 13);
+	io.Fonts->AddFontFromFileTTF("../../assets/fonts/Roboto-Medium.ttf", 13);
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	//execute a gpu command to upload imgui font textures
@@ -1021,8 +1021,8 @@ void Renderer::initShaders()
 		return shader.value();
 	};
 
-	VkShaderModule vertexShader = shaderLoadFunc((std::string)"../assets/shaders/default.vert.spv");
-	VkShaderModule fragShader = shaderLoadFunc((std::string)"../assets/shaders/default.frag.spv");
+	VkShaderModule vertexShader = shaderLoadFunc((std::string)"../../assets/shaders/default.vert.spv");
+	VkShaderModule fragShader = shaderLoadFunc((std::string)"../../assets/shaders/default.frag.spv");
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = VulkanInit::vertexInputStateCreateInfo();
 	VertexInputDescription vertexDescription = RenderMesh::getVertexDescription();

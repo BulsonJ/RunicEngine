@@ -19,7 +19,7 @@ void Engine::init() {
 void Engine::setupScene() {
 	Runic::MeshDesc fileMesh;
 	Runic::MeshHandle fileMeshHandle {};
-	if (fileMesh.loadFromObj("../assets/meshes/cube.obj"))
+	if (fileMesh.loadFromObj("../../assets/meshes/cube.obj"))
 	{
 		fileMeshHandle = rend.uploadMesh(fileMesh);
 	}
@@ -28,12 +28,12 @@ void Engine::setupScene() {
 	Runic::MeshHandle cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
 
 	static const std::pair<std::string, Runic::TextureDesc::Format> texturePaths[] = {
-		{"../assets/textures/default.png", Runic::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/texture.jpg", Runic::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/metal/metal_albedo.png", Runic::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/metal/metal_normal.png", Runic::TextureDesc::Format::NORMAL},
-		{"../assets/textures/bricks/bricks_albedo.png", Runic::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/bricks/bricks_normal.png", Runic::TextureDesc::Format::NORMAL},
+		{"../../assets/textures/default.png", Runic::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/texture.jpg", Runic::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/metal/metal_albedo.png", Runic::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/metal/metal_normal.png", Runic::TextureDesc::Format::NORMAL},
+		{"../../assets/textures/bricks/bricks_albedo.png", Runic::TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/bricks/bricks_normal.png", Runic::TextureDesc::Format::NORMAL},
 	};
 
 	std::vector<Runic::TextureHandle> textures;
@@ -64,7 +64,7 @@ void Engine::setupScene() {
 	LOG_CORE_INFO("Scene setup.");
 }
 
-void Engine::run(std::function<void()> applicationMain)
+void Engine::run()
 {
 	bool bQuit = { false };
 	SDL_Event e;
@@ -85,7 +85,6 @@ void Engine::run(std::function<void()> applicationMain)
 			}
 		}
 		rend.draw(renderObjects);
-		applicationMain();
 	}
 }
 

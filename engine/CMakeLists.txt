@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.5)
-project(runic_engine VERSION 0.0.1 LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 20)
+##cmake_minimum_required(VERSION 3.5)
+##project(runic_engine VERSION 0.0.1 LANGUAGES CXX)
+##
+##set(CMAKE_CXX_STANDARD 20)
 
 # library find functions
 find_package(Vulkan REQUIRED)
@@ -10,9 +10,9 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "include/*.h")
 file(GLOB_RECURSE RNC_FILES CONFIGURE_DEPENDS "*.h")
 
-add_library(${PROJECT_NAME} SHARED ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES})
+add_executable(${PROJECT_NAME} ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES} main.cpp)
 target_compile_definitions(${PROJECT_NAME} PRIVATE RNC_PLATFORM_WINDOWS RNC_BUILD_DLL)
-source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES})
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES} main.cpp)
 
 # add external libraries
 add_subdirectory(external)

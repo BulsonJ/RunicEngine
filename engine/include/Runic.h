@@ -2,8 +2,8 @@
 
 // For use by Runic applications
 
-#include "Runic/Application.h"
+//#include "Runic/Application.h"
 
 // -- ENTRY POINT ------
-#include "Runic/EntryPoint.h"
+//#include "Runic/EntryPoint.h"
 // ---------------------
