@@ -3,7 +3,7 @@
 #include <optional>
 #include "glm.hpp"
 
-namespace RenderableTypes
+namespace Runic
 {
 	typedef uint32_t MeshHandle;
 	typedef uint32_t TextureHandle;
@@ -19,30 +19,5 @@ namespace RenderableTypes
 		glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
 	};
 
-	struct TextureDesc
-	{
-		enum class Format
-		{
-			DEFAULT,
-			NORMAL,
-		} format;
-	};
-
-	struct Texture
-	{
-		~Texture();
-
-		TextureDesc desc;
-
-		void* ptr = nullptr;
-		int texWidth;
-		int texHeight;
-		int texChannels;
-	};
-
-	namespace TextureUtil
-	{
-		void LoadTextureFromFile(const char* file, RenderableTypes::TextureDesc textureDesc, Texture& outImage);
-	}
 }
 

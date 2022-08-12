@@ -8,7 +8,7 @@ extern Runic::Application* Runic::CreateApplication();
 
 int main(int argc, char* argv[])
 {
-	Engine eng;
+	Runic::Engine eng;
 	eng.init();
 
 	auto app = Runic::CreateApplication();

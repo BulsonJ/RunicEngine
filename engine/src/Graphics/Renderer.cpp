@@ -26,7 +26,8 @@
 #include "Runic/Graphics/VulkanInit.h"
 #include "Runic/Editor.h"
 #include "Runic/Log.h"
-#include "Runic/RenderableTypes.h"
+
+using namespace Runic;
 
 #define VK_CHECK(x)                                                 \
 	do                                                              \
@@ -49,7 +50,7 @@ void Renderer::init()
 	const SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
 
 	window.window = SDL_CreateWindow(
-		"Vulkan Renderer",
+		"Runic Engine",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		window.extent.width,
@@ -86,22 +87,22 @@ void Renderer::initShaderData()
 	Editor::lightAmbientColor = &sunlight.ambientColor;
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableTypes::RenderObject>& renderObjects)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::RenderObject>& renderObjects)
 {	
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
-	const RenderableTypes::RenderObject* FIRST = renderObjects.data();
+	const Runic::RenderObject* FIRST = renderObjects.data();
 
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	GPUShaderData::DrawData* drawDataSSBO = (GPUShaderData::DrawData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().drawDataBuffer).ptr;
-	GPUShaderData::Transform* objectSSBO = (GPUShaderData::Transform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
-	GPUShaderData::Material* materialSSBO = (GPUShaderData::Material*)ResourceManager::ptr->GetBuffer(getCurrentFrame().materialBuffer).ptr;
+	GPUData::DrawData* drawDataSSBO = (GPUData::DrawData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().drawDataBuffer).ptr;
+	GPUData::Transform* objectSSBO = (GPUData::Transform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
+	GPUData::Material* materialSSBO = (GPUData::Material*)ResourceManager::ptr->GetBuffer(getCurrentFrame().materialBuffer).ptr;
 
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const RenderableTypes::RenderObject& object = FIRST[i];
+		const Runic::RenderObject& object = FIRST[i];
 
 		drawDataSSBO[i].transformIndex = i;
 		drawDataSSBO[i].materialIndex = i;
@@ -112,7 +113,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 		objectSSBO[i].modelMatrix = modelMatrix;
 		objectSSBO[i].normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
 
-		materialSSBO[i] = GPUShaderData::Material{
+		materialSSBO[i] = GPUData::Material{
 			.specular = {0.4f,0.4,0.4f},
 			.shininess = 64.0f,
 			.textureIndices = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
@@ -130,17 +131,17 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 			UP_DIR);
 	//const float rotationSpeed = 0.5f;
 	//camera.view = glm::rotate(camera.view, (frameNumber / 120.0f) * rotationSpeed, UP_DIR);
-	GPUShaderData::Camera* cameraSSBO = (GPUShaderData::Camera*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
+	GPUData::Camera* cameraSSBO = (GPUData::Camera*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
 	*cameraSSBO = camera;
 		//slot 1 - directionalLight
-	GPUShaderData::DirectionalLight* dirLightSSBO = (GPUShaderData::DirectionalLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().dirLightBuffer).ptr;
+	GPUData::DirectionalLight* dirLightSSBO = (GPUData::DirectionalLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().dirLightBuffer).ptr;
 	*dirLightSSBO = sunlight;
 
 	const MaterialType* lastMaterialType = nullptr;
 	const RenderMesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const RenderableTypes::RenderObject& object = FIRST[i];
+		const Runic::RenderObject& object = FIRST[i];
 
 		// TODO : RenderObjects hold material handle for different materials
 		const MaterialType* currentMaterialType{ &materials["defaultMaterial"] };
@@ -154,15 +155,15 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 			lastMaterialType = currentMaterialType;
 		}
 
-		const GPUShaderData::PushConstants constants = {
+		const GPUData::PushConstants constants = {
 			.drawDataIndex = i,
 		};
-		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUShaderData::PushConstants), &constants);
+		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUData::PushConstants), &constants);
 
 		// TODO : Find better way of handling mesh handle
 		// Currently having to recreate handle which is not good.
 		const RenderMesh* currentMesh { &meshes.get(object.meshHandle)};
-		const RenderableTypes::MeshDesc* currentMeshDesc = { &currentMesh->meshDesc };
+		const Runic::MeshDesc* currentMeshDesc = { &currentMesh->meshDesc };
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
@@ -187,7 +188,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderableType
 	}
 }
 
-void Renderer::draw(const std::vector<RenderableTypes::RenderObject>& renderObjects)
+void Renderer::draw(const std::vector<Runic::RenderObject>& renderObjects)
 {
 	ZoneScoped;
 
@@ -449,7 +450,7 @@ void Renderer::initVulkan() {
 	ZoneScoped;
 	vkb::InstanceBuilder builder;
 
-	const auto inst_ret = builder.set_app_name("Vulkan Renderer")
+	const auto inst_ret = builder.set_app_name("Runic Engine")
 		.request_validation_layers(true)
 		.require_api_version(1, 3, 0)
 		.enable_extension("VK_EXT_debug_utils")
@@ -877,12 +878,12 @@ void Renderer::initShaders()
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::DrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
-		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::Transform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
-		frame[i].materialBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::Material) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::DrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::Transform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		frame[i].materialBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::Material) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
 
-		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::Camera), .usage = GFX::Buffer::Usage::UNIFORM });
-		frame[i].dirLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUShaderData::DirectionalLight), .usage = GFX::Buffer::Usage::UNIFORM });
+		frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::Camera), .usage = GFX::Buffer::Usage::UNIFORM });
+		frame[i].dirLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::DirectionalLight), .usage = GFX::Buffer::Usage::UNIFORM });
 	}
 	// create descriptor layout
 
@@ -1000,7 +1001,7 @@ void Renderer::initShaders()
 	const VkPushConstantRange defaultPushConstants{
 		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
 		.offset = 0,
-		.size = sizeof(GPUShaderData::PushConstants),
+		.size = sizeof(GPUData::PushConstants),
 	};
 
 	VkDescriptorSetLayout setLayouts[] = { globalSetLayout, sceneSetLayout };
@@ -1100,12 +1101,12 @@ void Renderer::deinit()
 	SDL_DestroyWindow(window.window);
 }
 
-RenderableTypes::MeshHandle Renderer::uploadMesh(const RenderableTypes::MeshDesc& mesh)
+Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)
 {
 	ZoneScoped;
 	RenderMesh renderMesh {.meshDesc = mesh};
 	{
-		const size_t bufferSize = mesh.vertices.size() * sizeof(RenderableTypes::Vertex);
+		const size_t bufferSize = mesh.vertices.size() * sizeof(Runic::Vertex);
 
 		BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
@@ -1137,7 +1138,7 @@ RenderableTypes::MeshHandle Renderer::uploadMesh(const RenderableTypes::MeshDesc
 
 	if (mesh.hasIndices())
 	{
-		const size_t bufferSize = mesh.indices.size() * sizeof(RenderableTypes::MeshDesc::Index);
+		const size_t bufferSize = mesh.indices.size() * sizeof(Runic::MeshDesc::Index);
 
 		BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
@@ -1171,14 +1172,14 @@ RenderableTypes::MeshHandle Renderer::uploadMesh(const RenderableTypes::MeshDesc
 	return meshes.add(renderMesh);
 }
 
-RenderableTypes::TextureHandle Renderer::uploadTexture(const RenderableTypes::Texture& texture)
+Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 {
 	if (texture.ptr == nullptr)
 	{
-		return RenderableTypes::TextureHandle(0);
+		return Runic::TextureHandle(0);
 	}
 	ImageHandle newTextureHandle = uploadTextureInternal(texture);
-	RenderableTypes::TextureHandle bindlessHandle = bindlessImages.add(newTextureHandle);
+	Runic::TextureHandle bindlessHandle = bindlessImages.add(newTextureHandle);
 
 	VkDescriptorImageInfo bindlessImageInfo = {
 		.imageView = ResourceManager::ptr->GetImage(bindlessImages.get(bindlessHandle)).imageView,
@@ -1205,10 +1206,10 @@ RenderableTypes::TextureHandle Renderer::uploadTexture(const RenderableTypes::Te
 	return bindlessHandle;
 }
 
-ImageHandle Renderer::uploadTextureInternal(const RenderableTypes::Texture& image)
+ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 {
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
-	const VkFormat image_format = {image.desc.format == RenderableTypes::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
+	const VkFormat image_format = {image.desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
 
 	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
@@ -1307,7 +1308,7 @@ VertexInputDescription RenderMesh::getVertexDescription()
 
 	const VkVertexInputBindingDescription mainBinding = {
 		.binding = 0,
-		.stride = sizeof(RenderableTypes::Vertex),
+		.stride = sizeof(Runic::Vertex),
 		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 	};
 
@@ -1317,28 +1318,28 @@ VertexInputDescription RenderMesh::getVertexDescription()
 		.location = 0,
 		.binding = 0,
 		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(RenderableTypes::Vertex, position),
+		.offset = offsetof(Runic::Vertex, position),
 	};
 
 	const VkVertexInputAttributeDescription normalAttribute = {
 		.location = 1,
 		.binding = 0,
 		.format = NORMAL_FORMAT,
-		.offset = offsetof(RenderableTypes::Vertex, normal),
+		.offset = offsetof(Runic::Vertex, normal),
 	};
 
 	const VkVertexInputAttributeDescription colorAttribute = {
 		.location = 2,
 		.binding = 0,
 		.format = VK_FORMAT_R32G32B32_SFLOAT,
-		.offset = offsetof(RenderableTypes::Vertex, color),
+		.offset = offsetof(Runic::Vertex, color),
 	};
 
 	const VkVertexInputAttributeDescription uvAttribute = {
 		.location = 3,
 		.binding = 0,
 		.format = VK_FORMAT_R32G32_SFLOAT,
-		.offset = offsetof(RenderableTypes::Vertex, uv),
+		.offset = offsetof(Runic::Vertex, uv),
 	};
 
 	description.attributes.push_back(positionAttribute);

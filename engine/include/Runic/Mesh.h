@@ -5,7 +5,7 @@
 #include <vector>
 #include <optional>
 
-namespace RenderableTypes
+namespace Runic
 {
 	struct Vertex
 	{
@@ -33,10 +33,10 @@ namespace RenderableTypes
 			return glm::cross(sideAB, sideAC);
 		}
 
-		static RenderableTypes::MeshDesc GenerateTriangle();
-		static RenderableTypes::MeshDesc GenerateQuad();
-		static RenderableTypes::MeshDesc GenerateCube();
-		static RenderableTypes::MeshDesc GenerateSkyboxCube();
-		static RenderableTypes::MeshDesc GeneratePlane(int size);
+		static Runic::MeshDesc GenerateTriangle();
+		static Runic::MeshDesc GenerateQuad();
+		static Runic::MeshDesc GenerateCube();
+		static Runic::MeshDesc GenerateSkyboxCube();
+		static Runic::MeshDesc GeneratePlane(int size);
 	};
 }

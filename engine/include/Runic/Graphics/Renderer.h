@@ -10,9 +10,12 @@
 
 #include "Runic/Graphics/PipelineBuilder.h"
 #include "Runic/Graphics/ResourceManager.h"
-#include "Runic/Mesh.h"
+
 #include "Runic/DeletionQueue.h"
-#include "Runic/RenderableTypes.h"
+
+#include "Runic/RenderObject.h"
+#include "Runic/Mesh.h"
+#include "Runic/Texture.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 100;
@@ -22,7 +25,7 @@ constexpr VkFormat NORMAL_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM };
 
 struct SDL_Window;
 
-namespace RenderTypes
+namespace Runic
 {
 	struct WindowContext
 	{
@@ -60,172 +63,172 @@ namespace RenderTypes
 		std::vector<VkImageView> imageViews;
 		std::vector<VkFramebuffer> framebuffers;
 	};
+
+	namespace GPUData
+	{
+
+		struct PushConstants
+		{
+			int drawDataIndex;
+		};
+
+		struct DrawData
+		{
+			int transformIndex;
+			int materialIndex;
+			int padding[2];
+		};
+
+		struct Material
+		{
+			glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
+			glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
+			float shininess = { 32.0f };
+			glm::ivec4 textureIndices;
+		};
+
+		struct Transform
+		{
+			glm::mat4 modelMatrix{};
+			glm::mat4 normalMatrix{};
+		};
+
+		struct DirectionalLight
+		{
+			glm::vec4 direction = { -0.15f, 0.1f, 0.4f, 1.0f };
+			glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
+			glm::vec4 ambientColor = { 0.7f, 0.7f, 0.7f, 1.0f };
+		};
+
+		struct Camera
+		{
+			glm::mat4 view{};
+			glm::mat4 proj{};
+			glm::vec4 pos{};
+		};
+	}
+
+	struct VertexInputDescription
+	{
+		std::vector<VkVertexInputBindingDescription> bindings;
+		std::vector<VkVertexInputAttributeDescription> attributes;
+		VkPipelineVertexInputStateCreateFlags flags = 0;
+	};
+
+	struct RenderMesh
+	{
+		Runic::MeshDesc meshDesc;
+		BufferHandle vertexBuffer;
+		BufferHandle indexBuffer;
+
+		static VertexInputDescription getVertexDescription();
+	};
+
+	struct MaterialType
+	{
+		VkPipeline pipeline = { VK_NULL_HANDLE };
+		VkPipelineLayout pipelineLayout = { VK_NULL_HANDLE };
+	};
+
+	struct MaterialInstance
+	{
+		MaterialType* matType = nullptr;
+		GPUData::Material materialData;
+	};
+
+	struct RenderFrame
+	{
+		ImageHandle renderImage;
+
+		VkSemaphore presentSem;
+		VkSemaphore	renderSem;
+		VkFence renderFen;
+
+		VkDescriptorSet globalSet;
+		BufferHandle transformBuffer;
+		BufferHandle materialBuffer;
+		BufferHandle drawDataBuffer;
+
+		VkDescriptorSet sceneSet;
+		BufferHandle cameraBuffer;
+		BufferHandle dirLightBuffer;
+	};
+
+	class Renderer
+	{
+	public:
+		void init();
+		void deinit();
+
+		// Public rendering API
+		void draw(const std::vector<RenderObject>& renderObjects);
+		MeshHandle uploadMesh(const MeshDesc& mesh);
+		TextureHandle uploadTexture(const Texture& texture);
+
+		Runic::WindowContext window;
+	private:
+		void initVulkan();
+		void initImguiRenderpass();
+		void createSwapchain();
+		void recreateSwapchain();
+		void destroySwapchain();
+
+		void initGraphicsCommands();
+		void initComputeCommands();
+		void initSyncStructures();
+
+		void initImgui();
+		void initImguiRenderImages();
+		void initShaders();
+
+		void initShaderData();
+
+		void drawObjects(VkCommandBuffer cmd, const std::vector<Runic::RenderObject>& renderObjects);
+
+		ImageHandle uploadTextureInternal(const Runic::Texture& image);
+
+		void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
+
+		[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
+		[[nodiscard]] RenderFrame& getCurrentFrame() { return frame[getCurrentFrameNumber()]; }
+
+		VkInstance instance;
+		VkPhysicalDevice chosenGPU;
+		VkPhysicalDeviceProperties gpuProperties;
+		VkDevice device;
+		DeletionQueue instanceDeletionQueue;
+
+		VkSurfaceKHR surface;
+		VmaAllocator allocator;
+		VkDebugUtilsMessengerEXT debugMessenger;
+
+		Runic::QueueContext<FRAME_OVERLAP> graphics;
+		Runic::QueueContext<1> compute;
+		Runic::UploadContext uploadContext;
+
+		Runic::Swapchain swapchain;
+		uint32_t currentSwapchainImage;
+
+		VkRenderPass imguiPass;
+		ImTextureID imguiRenderTexture[FRAME_OVERLAP];
+		ImTextureID imguiDepthTexture;
+
+		RenderFrame frame[FRAME_OVERLAP];
+		ImageHandle depthImage;
+		int frameNumber{};
+
+		VkDescriptorSetLayout globalSetLayout;
+		VkDescriptorPool globalPool;
+
+		VkDescriptorSetLayout sceneSetLayout;
+		VkDescriptorPool scenePool;
+
+		GPUData::Camera camera;
+		GPUData::DirectionalLight sunlight;
+
+		Slotmap<RenderMesh> meshes;
+		std::unordered_map<std::string, MaterialType> materials;
+
+		Slotmap<ImageHandle> bindlessImages;
+	};
 }
-
-namespace GPUShaderData
-{
-
-	struct PushConstants
-	{
-		int drawDataIndex;
-	};
-
-	struct DrawData
-	{
-		int transformIndex;
-		int materialIndex;
-		int padding[2];
-	};
-
-	struct Material
-	{
-		glm::vec4 diffuse = { 1.0f, 1.0f, 1.0f, 1.0f };
-		glm::vec3 specular = { 1.0f, 1.0f, 1.0f };
-		float shininess = { 32.0f };
-		glm::ivec4 textureIndices;
-	};
-
-	struct Transform
-	{
-		glm::mat4 modelMatrix{};
-		glm::mat4 normalMatrix{};
-	};
-
-	struct DirectionalLight
-	{
-		glm::vec4 direction = { -0.15f, 0.1f, 0.4f, 1.0f };
-		glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
-		glm::vec4 ambientColor = { 0.7f, 0.7f, 0.7f, 1.0f };
-	};
-
-	struct Camera
-	{
-		glm::mat4 view{};
-		glm::mat4 proj{};
-		glm::vec4 pos{};
-	};
-}
-
-struct VertexInputDescription
-{
-	std::vector<VkVertexInputBindingDescription> bindings;
-	std::vector<VkVertexInputAttributeDescription> attributes;
-	VkPipelineVertexInputStateCreateFlags flags = 0;
-};
-
-struct RenderMesh
-{
-	RenderableTypes::MeshDesc meshDesc;
-	BufferHandle vertexBuffer;
-	BufferHandle indexBuffer;
-
-	static VertexInputDescription getVertexDescription();
-};
-
-struct MaterialType
-{
-	VkPipeline pipeline = { VK_NULL_HANDLE };
-	VkPipelineLayout pipelineLayout = { VK_NULL_HANDLE };
-};
-
-struct MaterialInstance
-{
-	MaterialType* matType = nullptr;
-	GPUShaderData::Material materialData;
-};
-
-struct RenderFrame
-{
-	ImageHandle renderImage;
-
-	VkSemaphore presentSem;
-	VkSemaphore	renderSem;
-	VkFence renderFen;
-
-	VkDescriptorSet globalSet;
-	BufferHandle transformBuffer;
-	BufferHandle materialBuffer;
-	BufferHandle drawDataBuffer;
-
-	VkDescriptorSet sceneSet;
-	BufferHandle cameraBuffer;
-	BufferHandle dirLightBuffer;
-};
-
-class Renderer 
-{
-public:
-	void init();
-	void deinit();
-
-	// Public rendering API
-	void draw(const std::vector<RenderableTypes::RenderObject>& renderObjects);
-	RenderableTypes::MeshHandle uploadMesh(const RenderableTypes::MeshDesc& mesh);
-	RenderableTypes::TextureHandle uploadTexture(const RenderableTypes::Texture& texture);
-
-	RenderTypes::WindowContext window;
-private:
-	void initVulkan();
-	void initImguiRenderpass();
-	void createSwapchain();
-	void recreateSwapchain();
-	void destroySwapchain();
-
-	void initGraphicsCommands();
-	void initComputeCommands();
-	void initSyncStructures();
-
-	void initImgui();
-	void initImguiRenderImages();
-	void initShaders();
-
-	void initShaderData();
-
-	void drawObjects(VkCommandBuffer cmd, const std::vector<RenderableTypes::RenderObject>& renderObjects);
-
-	ImageHandle uploadTextureInternal(const RenderableTypes::Texture& image);
-
-	void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
-
-	[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
-	[[nodiscard]] RenderFrame& getCurrentFrame() { return frame[getCurrentFrameNumber()]; }
-
-	VkInstance instance;
-	VkPhysicalDevice chosenGPU;
-	VkPhysicalDeviceProperties gpuProperties;
-	VkDevice device;
-	DeletionQueue instanceDeletionQueue;
-
-	VkSurfaceKHR surface;
-	VmaAllocator allocator;
-	VkDebugUtilsMessengerEXT debugMessenger;
-
-	RenderTypes::QueueContext<FRAME_OVERLAP> graphics;
-	RenderTypes::QueueContext<1> compute;
-	RenderTypes::UploadContext uploadContext;
-
-	RenderTypes::Swapchain swapchain;
-	uint32_t currentSwapchainImage;
-
-	VkRenderPass imguiPass;
-	ImTextureID imguiRenderTexture[FRAME_OVERLAP];
-	ImTextureID imguiDepthTexture;
-
-	RenderFrame frame[FRAME_OVERLAP];
-	ImageHandle depthImage;
-	int frameNumber{};
-
-	VkDescriptorSetLayout globalSetLayout;
-	VkDescriptorPool globalPool;
-
-	VkDescriptorSetLayout sceneSetLayout;
-	VkDescriptorPool scenePool;
-
-	GPUShaderData::Camera camera;
-	GPUShaderData::DirectionalLight sunlight;
-
-	Slotmap<RenderMesh> meshes;
-	std::unordered_map<std::string, MaterialType> materials;
-
-	Slotmap<ImageHandle> bindlessImages;
-};

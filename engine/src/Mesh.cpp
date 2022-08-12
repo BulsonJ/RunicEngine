@@ -6,8 +6,8 @@
 
 #include "Runic/Log.h"
 
-RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateTriangle() {
-	RenderableTypes::MeshDesc triangleMesh;
+Runic::MeshDesc Runic::MeshDesc::GenerateTriangle() {
+	Runic::MeshDesc triangleMesh;
 
 	triangleMesh.vertices.resize(3);
 
@@ -30,8 +30,8 @@ RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateTriangle() {
 	return triangleMesh;
 }
 
-RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateQuad() {
-	RenderableTypes::MeshDesc mesh;
+Runic::MeshDesc Runic::MeshDesc::GenerateQuad() {
+	Runic::MeshDesc mesh;
 
 	mesh.vertices.resize(4);
 
@@ -66,8 +66,8 @@ RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateQuad() {
 	return mesh;
 }
 
-RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateCube() {
-	RenderableTypes::MeshDesc mesh;
+Runic::MeshDesc Runic::MeshDesc::GenerateCube() {
+	Runic::MeshDesc mesh;
 
 	mesh.vertices.resize(4*6);
 
@@ -165,8 +165,8 @@ RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateCube() {
 	return mesh;
 }
 
-RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateSkyboxCube() {
-	RenderableTypes::MeshDesc mesh;
+Runic::MeshDesc Runic::MeshDesc::GenerateSkyboxCube() {
+	Runic::MeshDesc mesh;
 
 	mesh.vertices.resize(4 * 6);
 
@@ -264,8 +264,8 @@ RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GenerateSkyboxCube() {
 	return mesh;
 }
 
-RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GeneratePlane(int size) {
-	RenderableTypes::MeshDesc mesh;
+Runic::MeshDesc Runic::MeshDesc::GeneratePlane(int size) {
+	Runic::MeshDesc mesh;
 
 	const int meshSize = size + 1;
 	mesh.vertices.resize(meshSize * meshSize);
@@ -306,14 +306,14 @@ RenderableTypes::MeshDesc RenderableTypes::MeshDesc::GeneratePlane(int size) {
 	return mesh;
 }
 
-bool RenderableTypes::MeshDesc::hasIndices() const {
+bool Runic::MeshDesc::hasIndices() const {
 	if (this->indices.size() > 0) {
 		return true;
 	}
 	return false;
 }
 
-bool RenderableTypes::MeshDesc::loadFromObj(const char* filename)
+bool Runic::MeshDesc::loadFromObj(const char* filename)
 {
 	//attrib will contain the vertex arrays of the file
 	tinyobj::attrib_t attrib;

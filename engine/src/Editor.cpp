@@ -6,17 +6,22 @@
 #include "Runic/Log.h"
 #include <memory>
 
+using namespace Runic;
+
 static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
-ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse;
+ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse;
 
-namespace Editor
+namespace Runic
 {
-	ImTextureID Editor::ViewportTexture;
-	ImTextureID Editor::ViewportDepthTexture;
+	namespace Editor
+	{
+		ImTextureID ViewportTexture;
+		ImTextureID ViewportDepthTexture;
 
-	glm::vec4* lightDirection;
-	glm::vec4* lightColor;
-	glm::vec4* lightAmbientColor;
+		glm::vec4* lightDirection;
+		glm::vec4* lightColor;
+		glm::vec4* lightAmbientColor;
+	}
 }
 
 void Editor::DrawEditor()

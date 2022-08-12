@@ -1,4 +1,4 @@
-#include "Runic/RenderableTypes.h"
+#include "Runic/Texture.h"
 
 #include <Tracy.hpp>
 #include "Runic/Log.h"
@@ -6,12 +6,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-RenderableTypes::Texture::~Texture()
+using namespace Runic;
+
+Texture::~Texture()
 {
 	stbi_image_free(this->ptr);
 }
 
-void RenderableTypes::TextureUtil::LoadTextureFromFile(const char* file, RenderableTypes::TextureDesc textureDesc, RenderableTypes::Texture& outImage)
+void TextureUtil::LoadTextureFromFile(const char* file, TextureDesc textureDesc, Texture& outImage)
 {
 	ZoneScoped;
 

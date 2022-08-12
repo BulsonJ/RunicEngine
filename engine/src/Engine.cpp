@@ -1,9 +1,12 @@
 #include "Runic/Engine.h"
+
 #include <SDL.h>
 #include <Tracy.hpp>
 #include <backends/imgui_impl_sdl.h>
 
 #include "Runic/Log.h"
+
+using namespace Runic;
 
 void Engine::init() {
 	ZoneScoped;
@@ -14,32 +17,32 @@ void Engine::init() {
 }
 
 void Engine::setupScene() {
-	RenderableTypes::MeshDesc fileMesh;
-	RenderableTypes::MeshHandle fileMeshHandle {};
+	Runic::MeshDesc fileMesh;
+	Runic::MeshHandle fileMeshHandle {};
 	if (fileMesh.loadFromObj("../assets/meshes/cube.obj"))
 	{
 		fileMeshHandle = rend.uploadMesh(fileMesh);
 	}
 
-	RenderableTypes::MeshDesc cubeMeshDesc = RenderableTypes::MeshDesc::GenerateCube();
-	RenderableTypes::MeshHandle cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
+	Runic::MeshDesc cubeMeshDesc = Runic::MeshDesc::GenerateCube();
+	Runic::MeshHandle cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
 
-	static const std::pair<std::string, RenderableTypes::TextureDesc::Format> texturePaths[] = {
-		{"../assets/textures/default.png", RenderableTypes::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/texture.jpg", RenderableTypes::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/metal/metal_albedo.png", RenderableTypes::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/metal/metal_normal.png", RenderableTypes::TextureDesc::Format::NORMAL},
-		{"../assets/textures/bricks/bricks_albedo.png", RenderableTypes::TextureDesc::Format::DEFAULT},
-		{"../assets/textures/bricks/bricks_normal.png", RenderableTypes::TextureDesc::Format::NORMAL},
+	static const std::pair<std::string, Runic::TextureDesc::Format> texturePaths[] = {
+		{"../assets/textures/default.png", Runic::TextureDesc::Format::DEFAULT},
+		{"../assets/textures/texture.jpg", Runic::TextureDesc::Format::DEFAULT},
+		{"../assets/textures/metal/metal_albedo.png", Runic::TextureDesc::Format::DEFAULT},
+		{"../assets/textures/metal/metal_normal.png", Runic::TextureDesc::Format::NORMAL},
+		{"../assets/textures/bricks/bricks_albedo.png", Runic::TextureDesc::Format::DEFAULT},
+		{"../assets/textures/bricks/bricks_normal.png", Runic::TextureDesc::Format::NORMAL},
 	};
 
-	std::vector<RenderableTypes::TextureHandle> textures;
+	std::vector<Runic::TextureHandle> textures;
 	for (int i = 0; i < std::size(texturePaths); ++i)
 	{
-		RenderableTypes::Texture img;
-		const RenderableTypes::TextureDesc textureDesc{ .format = texturePaths[i].second };
-		RenderableTypes::TextureUtil::LoadTextureFromFile(texturePaths[i].first.c_str(), textureDesc, img);
-		RenderableTypes::TextureHandle texHandle = rend.uploadTexture(img);
+		Runic::Texture img;
+		const Runic::TextureDesc textureDesc{ .format = texturePaths[i].second };
+		Runic::TextureUtil::LoadTextureFromFile(texturePaths[i].first.c_str(), textureDesc, img);
+		Runic::TextureHandle texHandle = rend.uploadTexture(img);
 		textures.push_back(texHandle);
 	}
 
@@ -47,7 +50,7 @@ void Engine::setupScene() {
 	{
 		for (int j = 0; j < 6; ++j)
 		{
-			const RenderableTypes::RenderObject materialTestObject{
+			const Runic::RenderObject materialTestObject{
 				.meshHandle = cubeMeshHandle,
 				.textureHandle = i > 3 ? textures[2] : textures[4],
 				.normalHandle = i > 3 ? textures[3] : textures[5],
