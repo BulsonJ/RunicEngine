@@ -87,11 +87,11 @@ void Renderer::initShaderData()
 	Editor::lightAmbientColor = &sunlight.ambientColor;
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::RenderObject>& renderObjects)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_ptr<RenderObject>>& renderObjects)
 {	
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
-	const Runic::RenderObject* FIRST = renderObjects.data();
+	const Runic::RenderObject* FIRST = renderObjects.data()->get();
 
 	// fill buffers
 	// binding 0
@@ -102,7 +102,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::RenderO
 
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const Runic::RenderObject& object = FIRST[i];
+		const Runic::RenderObject& object = *renderObjects[i].get();
 
 		drawDataSSBO[i].transformIndex = i;
 		drawDataSSBO[i].materialIndex = i;
@@ -141,7 +141,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::RenderO
 	const RenderMesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const Runic::RenderObject& object = FIRST[i];
+		const Runic::RenderObject& object = *renderObjects[i].get();
 
 		// TODO : RenderObjects hold material handle for different materials
 		const MaterialType* currentMaterialType{ &materials["defaultMaterial"] };
@@ -188,7 +188,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::RenderO
 	}
 }
 
-void Renderer::draw(const std::vector<Runic::RenderObject>& renderObjects)
+void Renderer::draw(const std::vector<std::shared_ptr<RenderObject>>& renderObjects)
 {
 	ZoneScoped;
 

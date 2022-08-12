@@ -56,10 +56,10 @@ void Engine::setupScene() {
 				.normalHandle = i > 3 ? textures[3] : textures[5],
 				.translation = { 1.0f * j,-0.5f,1.0f * i},
 			};
-			renderObjects.push_back(materialTestObject);
+			auto renderObj = scene.AddRenderObject();
+			*renderObj = materialTestObject;
 		}
 	}
-
 
 	LOG_CORE_INFO("Scene setup.");
 }
@@ -84,7 +84,7 @@ void Engine::run()
 				break;
 			}
 		}
-		rend.draw(renderObjects);
+		rend.draw(scene.renderObjects);
 	}
 }
 
@@ -93,3 +93,4 @@ void Engine::deinit()
 	ZoneScoped;
 	rend.deinit();
 }
+

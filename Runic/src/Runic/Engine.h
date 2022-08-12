@@ -2,7 +2,8 @@
 
 #include "Runic/Core.h"
 #include "Graphics/Renderer.h"
-#include "Runic/RenderObject.h"
+
+#include "Runic/Scene.h"
 
 namespace Runic
 {
@@ -12,12 +13,11 @@ namespace Runic
 		void init();
 		void run();
 		void deinit();
-
 	private:
 		void setupScene();
 
 		Renderer rend;
-		std::vector<RenderObject> renderObjects;
+		Scene scene;
 	};
 }
 

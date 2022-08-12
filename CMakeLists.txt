@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
-project(runic_engine VERSION 0.0.1 LANGUAGES CXX)
+project(RunicEngine VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
 set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_subdirectory(engine)
+add_subdirectory(Runic)
 
 ##file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 ##file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "src/*.h")

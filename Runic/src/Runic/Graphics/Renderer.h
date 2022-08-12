@@ -161,7 +161,7 @@ namespace Runic
 		void deinit();
 
 		// Public rendering API
-		void draw(const std::vector<RenderObject>& renderObjects);
+		void draw(const std::vector<std::shared_ptr<RenderObject>>& renderObjects);
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 
@@ -183,7 +183,7 @@ namespace Runic
 
 		void initShaderData();
 
-		void drawObjects(VkCommandBuffer cmd, const std::vector<Runic::RenderObject>& renderObjects);
+		void drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_ptr<RenderObject>>& renderObjects);
 
 		ImageHandle uploadTextureInternal(const Runic::Texture& image);
 
