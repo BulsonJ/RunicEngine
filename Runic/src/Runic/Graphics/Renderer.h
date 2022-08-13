@@ -8,14 +8,14 @@
 #include <imgui.h>
 #include <unordered_map>
 
-#include "Runic/Graphics/PipelineBuilder.h"
+#include "Runic/Graphics/Internal/PipelineBuilder.h"
 #include "Runic/Graphics/ResourceManager.h"
 
-#include "Runic/DeletionQueue.h"
+#include "Runic/Structures/DeletionQueue.h"
 
-#include "Runic/RenderObject.h"
-#include "Runic/Mesh.h"
-#include "Runic/Texture.h"
+#include "Runic/Graphics/RenderObject.h"
+#include "Runic/Graphics/Mesh.h"
+#include "Runic/Graphics/Texture.h"
 #include "Runic/Scene/Camera.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;

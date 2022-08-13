@@ -1,4 +1,4 @@
-#include "Runic/Graphics/PipelineBuilder.h"
+#include "Runic/Graphics/Internal/PipelineBuilder.h"
 #include <assert.h>
 #include <fstream>
 

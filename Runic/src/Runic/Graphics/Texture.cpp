@@ -1,4 +1,4 @@
-#include "Runic/Texture.h"
+#include "Runic/Graphics/Texture.h"
 
 #include <Tracy.hpp>
 #include "Runic/Log.h"

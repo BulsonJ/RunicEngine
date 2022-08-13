@@ -23,7 +23,7 @@
 #include <iostream>
 #include <memory>
 
-#include "Runic/Graphics/VulkanInit.h"
+#include "Runic/Graphics/Internal/VulkanInit.h"
 #include "Runic/Editor.h"
 #include "Runic/Log.h"
 

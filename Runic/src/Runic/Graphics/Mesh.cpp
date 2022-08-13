@@ -1,4 +1,4 @@
-#include "Runic/Mesh.h"
+#include "Runic/Graphics/Mesh.h"
 
 #include <iostream>
 #include <array>

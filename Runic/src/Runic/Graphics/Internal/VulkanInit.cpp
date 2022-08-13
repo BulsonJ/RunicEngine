@@ -1,4 +1,4 @@
-#include "Runic/Graphics/VulkanInit.h"
+#include "Runic/Graphics/Internal/VulkanInit.h"
 
 VkCommandPoolCreateInfo VulkanInit::commandPoolCreateInfo(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags /*= 0*/)
 {

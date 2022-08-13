@@ -1,6 +1,6 @@
 #include "Runic/Graphics/ResourceManager.h"
-#include "Runic/Graphics/VulkanInit.h"
-#include "Runic/Graphics/VulkanCommon.h"
+#include "Runic/Graphics/Internal/VulkanInit.h"
+#include "Runic/Graphics/Internal/VulkanCommon.h"
 
 ResourceManager* ResourceManager::ptr = nullptr;
 

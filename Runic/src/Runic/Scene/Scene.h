@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "Runic/RenderObject.h"
+#include "Runic/Graphics/RenderObject.h"
 #include "Runic/Scene/Camera.h"
 
 namespace Runic
