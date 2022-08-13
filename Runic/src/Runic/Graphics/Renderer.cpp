@@ -244,11 +244,14 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 	vkCmdSetViewport(cmd, 0, 1, &viewport);
 	vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-	const VkImageMemoryBarrier presentImgMemBarrier{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+	VkImageMemoryBarrier2 presentImgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		//.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.image = m_swapchain.images[m_swapchainImageIndex],
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -259,29 +262,17 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 		}
 	};
 
-	VkImageMemoryBarrier renderImgMemBarrier = presentImgMemBarrier;
+	VkImageMemoryBarrier2 renderImgMemBarrier = presentImgMemBarrier;
 	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).image;
 
-	VkImageMemoryBarrier initialBarriers[] = { presentImgMemBarrier,renderImgMemBarrier };
-
-	vkCmdPipelineBarrier(
-		cmd,
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		0,
-		0,
-		nullptr,
-		0,
-		nullptr,
-		static_cast<uint32_t>(std::size(initialBarriers)),
-		initialBarriers
-	);
-
-	const VkImageMemoryBarrier depthImgMemBarrier{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+	const VkImageMemoryBarrier2 depthImgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.srcStageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT,
+		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.image = ResourceManager::ptr->GetImage(m_depthImage).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
@@ -292,23 +283,20 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 		}
 	};
 
-	vkCmdPipelineBarrier(
-		cmd,
-		VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-		0,
-		0,
-		nullptr,
-		0,
-		nullptr,
-		1,
-		&depthImgMemBarrier
-	);
+	VkImageMemoryBarrier2 initialBarriers[] = { presentImgMemBarrier,renderImgMemBarrier, depthImgMemBarrier};
+
+	VkDependencyInfo presentImgDependencyInfo = {
+		.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+		.imageMemoryBarrierCount = std::size(initialBarriers),
+		.pImageMemoryBarriers = initialBarriers,
+	};
+
+	vkCmdPipelineBarrier2(cmd, &presentImgDependencyInfo);
 
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 		.imageView = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).imageView,
-		.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 		.clearValue = { 
@@ -319,7 +307,7 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 	const VkRenderingAttachmentInfo depthAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 		.imageView = ResourceManager::ptr->GetImage(m_depthImage).imageView,
-		.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 		.clearValue = {
@@ -341,10 +329,13 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 
 	vkCmdEndRendering(cmd);
 
-	const VkImageMemoryBarrier imgMemBarrier{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-		.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+	const VkImageMemoryBarrier2 imgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR,
+		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR,
+		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		.image = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).image,
 		.subresourceRange = {
@@ -355,25 +346,14 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 			.layerCount = 1,
 		}
 	};
-		
-	vkCmdPipelineBarrier(
-		cmd,
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-		0,
-		0,
-		nullptr,
-		0,
-		nullptr,
-		1,
-		&imgMemBarrier
-	);
 
-
-	const VkImageMemoryBarrier depthShaderImgMemBarrier{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-		.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+	const VkImageMemoryBarrier2 depthShaderImgMemBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+		.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT_KHR,
+		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR,
+		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 		.image = ResourceManager::ptr->GetImage(m_depthImage).image,
 		.subresourceRange = {
@@ -385,18 +365,16 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 		}
 	};
 
-	vkCmdPipelineBarrier(
-		cmd,
-		VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-		VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-		0,
-		0,
-		nullptr,
-		0,
-		nullptr,
-		1,
-		&depthShaderImgMemBarrier
-	);
+	VkImageMemoryBarrier2 shaderReadBarriers[] = { imgMemBarrier,depthShaderImgMemBarrier};
+
+	const VkDependencyInfo dependencyInfo = {
+		.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+		.imageMemoryBarrierCount = std::size(shaderReadBarriers),
+		.pImageMemoryBarriers = shaderReadBarriers,
+	};
+	
+	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
+
 	Editor::ViewportTexture = m_imguiRenderTexture[getCurrentFrameNumber()];
 
 	const VkClearValue clearValue{
@@ -470,8 +448,14 @@ void Renderer::initVulkan() {
 
 	vkb::DeviceBuilder m_deviceBuilder{ physicalDevice };
 
+	VkPhysicalDeviceSynchronization2Features syncFeatures{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
+		.synchronization2 = true,
+	};
+
 	VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeature{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
+		.pNext = &syncFeatures,
 		.dynamicRendering = VK_TRUE,
 	};
 
@@ -615,7 +599,7 @@ void Renderer::initImguiRenderpass()
 
 	const VkAttachmentReference color_attachment_ref = {
 		.attachment = 0,
-		.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		.layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 	};
 
 	const VkSubpassDescription subpass = {
@@ -1237,17 +1221,25 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 			.layerCount = 1,
 		};
 
-		const VkImageMemoryBarrier imageBarrier_toTransfer = {
-			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		const VkImageMemoryBarrier2 imageBarrier_toTransfer{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
 			.srcAccessMask = 0,
-			.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			.image = ResourceManager::ptr->GetImage(newImage).image,
 			.subresourceRange = range,
 		};
 
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toTransfer);
+		VkDependencyInfo imgDependencyInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &imageBarrier_toTransfer,
+		};
+
+		vkCmdPipelineBarrier2(cmd, &imgDependencyInfo);
 
 		const VkBufferImageCopy copyRegion = {
 			.bufferOffset = 0,
@@ -1262,15 +1254,26 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 
 		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-		VkImageMemoryBarrier imageBarrier_toReadable = imageBarrier_toTransfer;
+		const VkImageMemoryBarrier2 imageBarrier_toReadable{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+			.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.subresourceRange = range,
+		};
 
-		imageBarrier_toReadable.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imageBarrier_toReadable.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageBarrier_toReadable.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		imageBarrier_toReadable.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+		VkDependencyInfo imgRedableDependencyInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &imageBarrier_toReadable,
+		};
 
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier_toReadable);
-		});
+		vkCmdPipelineBarrier2(cmd, &imgRedableDependencyInfo);
+	});
 
 	ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 
