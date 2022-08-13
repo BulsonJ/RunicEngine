@@ -6,7 +6,7 @@ ResourceManager* ResourceManager::ptr = nullptr;
 
 ResourceManager::~ResourceManager()
 {
-	for (const auto& buffer : buffers.array)
+	for (const auto& buffer : buffers.m_array)
 	{
 		if (buffer.buffer != VK_NULL_HANDLE)
 		{
@@ -14,7 +14,7 @@ ResourceManager::~ResourceManager()
 		}
 	}
 
-	for (const auto& image : images.array)
+	for (const auto& image : images.m_array)
 	{
 		if (image.image != VK_NULL_HANDLE)
 		{

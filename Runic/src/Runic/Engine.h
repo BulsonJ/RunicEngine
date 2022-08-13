@@ -16,8 +16,8 @@ namespace Runic
 	private:
 		void setupScene();
 
-		Renderer rend;
-		Scene scene;
+		Renderer m_rend;
+		Scene m_scene;
 	};
 }
 

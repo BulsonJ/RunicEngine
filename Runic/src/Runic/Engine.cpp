@@ -12,7 +12,7 @@ void Engine::init() {
 	ZoneScoped;
 
 	Log::Init();
-	rend.init();
+	m_rend.init();
 	setupScene();
 }
 
@@ -21,11 +21,11 @@ void Engine::setupScene() {
 	Runic::MeshHandle fileMeshHandle {};
 	if (fileMesh.loadFromObj("../../assets/meshes/cube.obj"))
 	{
-		fileMeshHandle = rend.uploadMesh(fileMesh);
+		fileMeshHandle = m_rend.uploadMesh(fileMesh);
 	}
 
 	Runic::MeshDesc cubeMeshDesc = Runic::MeshDesc::GenerateCube();
-	Runic::MeshHandle cubeMeshHandle = rend.uploadMesh(cubeMeshDesc);
+	Runic::MeshHandle cubeMeshHandle = m_rend.uploadMesh(cubeMeshDesc);
 
 	static const std::pair<std::string, Runic::TextureDesc::Format> texturePaths[] = {
 		{"../../assets/textures/default.png", Runic::TextureDesc::Format::DEFAULT},
@@ -42,7 +42,7 @@ void Engine::setupScene() {
 		Runic::Texture img;
 		const Runic::TextureDesc textureDesc{ .format = texturePaths[i].second };
 		Runic::TextureUtil::LoadTextureFromFile(texturePaths[i].first.c_str(), textureDesc, img);
-		Runic::TextureHandle texHandle = rend.uploadTexture(img);
+		Runic::TextureHandle texHandle = m_rend.uploadTexture(img);
 		textures.push_back(texHandle);
 	}
 
@@ -56,12 +56,12 @@ void Engine::setupScene() {
 				.normalHandle = i > 3 ? textures[3] : textures[5],
 				.translation = { 1.0f * j,-0.5f,1.0f * i},
 			};
-			auto renderObj = scene.AddRenderObject();
+			auto renderObj = m_scene.AddRenderObject();
 			*renderObj = materialTestObject;
 		}
 	}
 
-	scene.camera = std::make_unique<Camera>();
+	m_scene.m_camera = std::make_unique<Camera>();
 
 	LOG_CORE_INFO("Scene setup.");
 }
@@ -82,7 +82,7 @@ void Engine::run()
 			}
 			if (e.window.event == SDL_WINDOWEVENT_RESIZED || e.window.event == SDL_WINDOWEVENT_MINIMIZED)
 			{
-				rend.window.resized = true;
+				m_rend.m_window.resized = true;
 				break;
 			}
 			const float speed = 0.1f;
@@ -90,37 +90,37 @@ void Engine::run()
 			{
 				if (e.key.keysym.sym == SDLK_w)
 				{
-					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, 0.0f, -1.0f });
+					m_scene.m_camera.get()->m_pos = m_scene.m_camera.get()->m_pos + (speed * glm::vec3{ 0.0f, 0.0f, -1.0f });
 				}
 				if (e.key.keysym.sym == SDLK_s)
 				{
-					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, 0.0f, 1.0f });
+					m_scene.m_camera.get()->m_pos = m_scene.m_camera.get()->m_pos + (speed * glm::vec3{ 0.0f, 0.0f, 1.0f });
 				}
 				if (e.key.keysym.sym == SDLK_a)
 				{
-					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ -1.0f, 0.0f, 0.0f });
+					m_scene.m_camera.get()->m_pos = m_scene.m_camera.get()->m_pos + (speed * glm::vec3{ -1.0f, 0.0f, 0.0f });
 				}
 				if (e.key.keysym.sym == SDLK_d)
 				{
-					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 1.0f, 0.0f, 0.0f });
+					m_scene.m_camera.get()->m_pos = m_scene.m_camera.get()->m_pos + (speed * glm::vec3{ 1.0f, 0.0f, 0.0f });
 				}
 				if (e.key.keysym.sym == SDLK_q)
 				{
-					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, -1.0f, 0.0f });
+					m_scene.m_camera.get()->m_pos = m_scene.m_camera.get()->m_pos + (speed * glm::vec3{ 0.0f, -1.0f, 0.0f });
 				}
 				if (e.key.keysym.sym == SDLK_e)
 				{
-					scene.camera.get()->pos = scene.camera.get()->pos + (speed * glm::vec3{ 0.0f, 1.0f, 0.0f });
+					m_scene.m_camera.get()->m_pos = m_scene.m_camera.get()->m_pos + (speed * glm::vec3{ 0.0f, 1.0f, 0.0f });
 				}
 			}
 		}
-		rend.draw(scene.camera.get(), scene.renderObjects);
+		m_rend.draw(m_scene.m_camera.get(), m_scene.m_renderObjects);
 	}
 }
 
 void Engine::deinit()
 {
 	ZoneScoped;
-	rend.deinit();
+	m_rend.deinit();
 }
 

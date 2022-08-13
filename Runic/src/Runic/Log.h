@@ -9,11 +9,11 @@ class Log
 public:
 	static void Init();
 
-	inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return coreLogger; }
-	inline static std::ostringstream& GetCoreLoggerStream() { return coreLoggerStream; }
+	inline static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return m_coreLogger; }
+	inline static std::ostringstream& GetCoreLoggerStream() { return m_coreLoggerStream; }
 private:
-	static std::shared_ptr<spdlog::logger> coreLogger;
-	static std::ostringstream coreLoggerStream;
+	static std::shared_ptr<spdlog::logger> m_coreLogger;
+	static std::ostringstream m_coreLoggerStream;
 };
 
 #ifdef _DEBUG

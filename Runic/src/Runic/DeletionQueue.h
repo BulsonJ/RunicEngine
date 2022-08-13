@@ -15,6 +15,6 @@ public:
 	*/
 	void flush();
 private:
-	std::vector<std::function<void()>> deletors;
+	std::vector<std::function<void()>> m_deletors;
 };
 

@@ -14,8 +14,8 @@ namespace Runic
 	public:
 		std::shared_ptr<RenderObject> AddRenderObject();
 
-		std::unique_ptr<Camera> camera;
+		std::unique_ptr<Camera> m_camera;
 	private:
-		std::vector<std::shared_ptr<RenderObject>> renderObjects;
+		std::vector<std::shared_ptr<RenderObject>> m_renderObjects;
 	};
 }

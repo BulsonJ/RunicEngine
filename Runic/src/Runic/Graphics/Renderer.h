@@ -166,7 +166,7 @@ namespace Runic
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 
-		Runic::WindowContext window;
+		Runic::WindowContext m_window;
 	private:
 		void initVulkan();
 		void initImguiRenderpass();
@@ -190,46 +190,46 @@ namespace Runic
 
 		void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
-		[[nodiscard]] int getCurrentFrameNumber() { return frameNumber % FRAME_OVERLAP; }
-		[[nodiscard]] RenderFrame& getCurrentFrame() { return frame[getCurrentFrameNumber()]; }
+		[[nodiscard]] int getCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
+		[[nodiscard]] RenderFrame& getCurrentFrame() { return m_frame[getCurrentFrameNumber()]; }
 
-		VkInstance instance;
-		VkPhysicalDevice chosenGPU;
-		VkPhysicalDeviceProperties gpuProperties;
-		VkDevice device;
-		DeletionQueue instanceDeletionQueue;
+		VkInstance m_instance;
+		VkPhysicalDevice m_chosenGPU;
+		VkPhysicalDeviceProperties m_gpuProperties;
+		VkDevice m_device;
+		DeletionQueue m_instanceDeletionQueue;
 
-		VkSurfaceKHR surface;
-		VmaAllocator allocator;
-		VkDebugUtilsMessengerEXT debugMessenger;
+		VkSurfaceKHR m_surface;
+		VmaAllocator m_allocator;
+		VkDebugUtilsMessengerEXT m_debugMessenger;
 
-		Runic::QueueContext<FRAME_OVERLAP> graphics;
-		Runic::QueueContext<1> compute;
-		Runic::UploadContext uploadContext;
+		Runic::QueueContext<FRAME_OVERLAP> m_graphics;
+		Runic::QueueContext<1> m_compute;
+		Runic::UploadContext m_uploadContext;
 
-		Runic::Swapchain swapchain;
-		uint32_t currentSwapchainImage;
+		Runic::Swapchain m_swapchain;
+		uint32_t m_currentSwapchainImage;
 
-		VkRenderPass imguiPass;
-		ImTextureID imguiRenderTexture[FRAME_OVERLAP];
-		ImTextureID imguiDepthTexture;
+		VkRenderPass m_imguiPass;
+		ImTextureID m_imguiRenderTexture[FRAME_OVERLAP];
+		ImTextureID m_imguiDepthTexture;
 
-		RenderFrame frame[FRAME_OVERLAP];
-		ImageHandle depthImage;
-		int frameNumber{};
+		RenderFrame m_frame[FRAME_OVERLAP];
+		ImageHandle m_depthImage;
+		int m_frameNumber{};
 
-		VkDescriptorSetLayout globalSetLayout;
-		VkDescriptorPool globalPool;
+		VkDescriptorSetLayout m_globalSetLayout;
+		VkDescriptorPool m_globalPool;
 
-		VkDescriptorSetLayout sceneSetLayout;
-		VkDescriptorPool scenePool;
+		VkDescriptorSetLayout m_sceneSetLayout;
+		VkDescriptorPool m_scenePool;
 
-		Camera* currentCamera;
-		GPUData::DirectionalLight sunlight;
+		Camera* m_currentCamera;
+		GPUData::DirectionalLight m_sunlight;
 
-		Slotmap<RenderMesh> meshes;
-		std::unordered_map<std::string, MaterialType> materials;
+		Slotmap<RenderMesh> m_meshes;
+		std::unordered_map<std::string, MaterialType> m_materials;
 
-		Slotmap<ImageHandle> bindlessImages;
+		Slotmap<ImageHandle> m_bindlessImages;
 	};
 }

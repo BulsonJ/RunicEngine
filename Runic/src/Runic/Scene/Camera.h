@@ -9,27 +9,20 @@ namespace Runic
 	public:
 		Camera() = default;
 
-		const glm::mat4& GetViewMatrix() { return view; } const
-		const glm::mat4& GetProjectionMatrix(){ return proj; } const
-		const glm::mat4& GetViewProjectionMatrix() { return view_proj; } const
+		glm::vec3 GetPosition() const { return m_pos; }
 
-		const glm::vec3& GetPosition() { return pos; } const
-
-		const glm::mat4 BuildViewMatrix() const;
-		const glm::mat4 BuildProjMatrix() const;
+		glm::mat4 BuildViewMatrix() const;
+		glm::mat4 BuildProjMatrix() const;
 
 		void SetPitch(float amount)
 		{
-			pitch = std::min((float)amount, -90.f);
-			pitch = std::min((float)amount, 90.f);
+			m_pitch = std::min((float)amount, -90.f);
+			m_pitch = std::min((float)amount, 90.f);
 		}
 	// Add process input when input subsystem setup
 	//TODO: private:
-		float yaw = 0.0f;
-		float pitch = 0.0f;
-		glm::vec3 pos {0,0,0};
-		glm::mat4 view{};
-		glm::mat4 proj{};
-		glm::mat4 view_proj{};
+		float m_yaw = 0.0f;
+		float m_pitch = 0.0f;
+		glm::vec3 m_pos {0,0,0};
 	};
 }

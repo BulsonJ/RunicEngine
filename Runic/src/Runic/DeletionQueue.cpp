@@ -2,15 +2,15 @@
 
 void DeletionQueue::push_function(std::function<void()>&& function)
 {
-	deletors.push_back(function);
+	m_deletors.push_back(function);
 }
 
 void DeletionQueue::flush()
 {
-	for (auto it = deletors.rbegin(); it != deletors.rend(); it++)
+	for (auto it = m_deletors.rbegin(); it != m_deletors.rend(); it++)
 	{
 		(*it)();
 	}
 
-	deletors.clear();
+	m_deletors.clear();
 }

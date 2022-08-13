@@ -17,7 +17,7 @@ public:
 	T& get(uint32_t handle);
 
 	// TODO: make private
-	std::array<T, 1024> array;
+	std::array<T, 1024> m_array;
 private:
 	uint32_t lastHandle{ 0U };
 	[[nodiscard]] uint32_t getNewHandle()
@@ -30,12 +30,12 @@ template<typename T>
 inline uint32_t Slotmap<T>::add(const T& object)
 {
 	uint32_t handle = getNewHandle();
-	array[handle] = object;
+	m_array[handle] = object;
 	return handle;
 }
 
 template<typename T>
 inline T& Slotmap<T>::get(uint32_t handle)
 {
-	return array[handle];
+	return m_array[handle];
 }

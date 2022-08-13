@@ -6,6 +6,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <string_view>
+
 using namespace Runic;
 
 Texture::~Texture()
@@ -27,6 +29,8 @@ void TextureUtil::LoadTextureFromFile(const char* file, TextureDesc textureDesc,
 
 	outImage.desc = textureDesc;
 	outImage.ptr = pixels;
+
+	LOG_CORE_INFO(file);
 
 	return;
 }
