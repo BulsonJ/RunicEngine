@@ -3,6 +3,7 @@
 #include "Runic/Core.h"
 #include "Graphics/Renderer.h"
 
+#include "Runic/Window.h"
 #include "Runic/Scene/Scene.h"
 
 namespace Runic
@@ -16,6 +17,7 @@ namespace Runic
 	private:
 		void setupScene();
 
+		Window m_window;
 		Renderer m_rend;
 		Scene m_scene;
 	};

@@ -10,6 +10,7 @@
 
 #include "Runic/Graphics/Internal/PipelineBuilder.h"
 #include "Runic/Graphics/ResourceManager.h"
+#include "Runic/Window.h"
 
 #include "Runic/Structures/DeletionQueue.h"
 
@@ -158,7 +159,7 @@ namespace Runic
 	class Renderer
 	{
 	public:
-		void init();
+		void init(Window* window);
 		void deinit();
 
 		// Public rendering API
@@ -166,7 +167,8 @@ namespace Runic
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 
-		Runic::WindowContext m_window;
+		Window* m_window;
+		//Runic::WindowContext m_window;
 	private:
 		void initVulkan();
 		void initImguiRenderpass();

@@ -41,22 +41,11 @@ using namespace Runic;
 	} while (0)
 
 
-void Renderer::init()
+void Renderer::init(Window* window)
 {
 	ZoneScoped;
 
-	SDL_Init(SDL_INIT_VIDEO);
-
-	const SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
-
-	m_window.window = SDL_CreateWindow(
-		"Runic Engine",
-		SDL_WINDOWPOS_UNDEFINED,
-		SDL_WINDOWPOS_UNDEFINED,
-		m_window.extent.width,
-		m_window.extent.height,
-		window_flags
-	);
+	m_window = window;
 
 	initVulkan();
 
@@ -190,7 +179,7 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 	m_currentCamera = camera;
 
 	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplSDL2_NewFrame(m_window.window);
+	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
 
 	Editor::ViewportTexture = m_imguiRenderTexture[getCurrentFrameNumber()];
@@ -202,9 +191,9 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 
 	uint32_t m_swapchainImageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &m_swapchainImageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_window.resized == true)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) //|| m_window.resized == true)
 	{
-		m_window.resized = false;
+		//m_window.resized = false;
 		recreateSwapchain();
 		return;
 	}
@@ -230,15 +219,15 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 	const VkViewport viewport{
 		.x = 0.0f,
 		.y = 0.0f,
-		.width = static_cast<float>(m_window.extent.width),
-		.height = static_cast<float>(m_window.extent.height),
+		.width = static_cast<float>(m_window->GetWidth()),
+		.height = static_cast<float>(m_window->GetHeight()),
 		.minDepth = 0.0f,
 		.maxDepth = 1.0f,
 	};
 
 	const VkRect2D scissor{
 		.offset = {.x = 0,.y = 0},
-		.extent = m_window.extent
+		.extent = {.width = m_window->GetWidth(), .height = m_window->GetHeight()}
 	};
 
 	vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -381,7 +370,11 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 	const VkClearValue clearValue{
 		.color = { 0.1f, 0.1f, 0.1f, 1.0f }
 	};
-	VkRenderPassBeginInfo rpInfo = VulkanInit::renderpassBeginInfo(m_imguiPass, m_window.extent, m_swapchain.framebuffers[m_swapchainImageIndex]);
+	const VkExtent2D windowExtent{
+		.width = m_window->GetWidth(),
+		.height = m_window->GetHeight(),
+	};
+	VkRenderPassBeginInfo rpInfo = VulkanInit::renderpassBeginInfo(m_imguiPass, windowExtent, m_swapchain.framebuffers[m_swapchainImageIndex]);
 	const VkClearValue clearValues[] = { clearValue };
 	rpInfo.clearValueCount = 1;
 	rpInfo.pClearValues = &clearValues[0];
@@ -438,7 +431,7 @@ void Renderer::initVulkan() {
 	m_instance = vkb_inst.instance;
 	m_debugMessenger = vkb_inst.debug_messenger;
 
-	SDL_Vulkan_CreateSurface(m_window.window, m_instance, &m_surface);
+	SDL_Vulkan_CreateSurface(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()), m_instance, &m_surface);
 
 	vkb::PhysicalDeviceSelector selector{ vkb_inst };
 	const vkb::PhysicalDevice physicalDevice = selector
@@ -499,10 +492,15 @@ void Renderer::createSwapchain()
 	ZoneScoped;
 	vkb::SwapchainBuilder m_swapchainBuilder{ m_chosenGPU,m_device,m_surface };
 
+	const VkExtent2D windowExtent{
+		.width = m_window->GetWidth(),
+		.height = m_window->GetHeight(),
+	};
+
 	vkb::Swapchain vkbm_swapchain = m_swapchainBuilder
 		.use_default_format_selection()
 		.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-		.set_desired_extent(m_window.extent.width, m_window.extent.height)
+		.set_desired_extent(windowExtent.width, windowExtent.height)
 		.build()
 		.value();
 
@@ -511,12 +509,12 @@ void Renderer::createSwapchain()
 	m_swapchain.imageViews = vkbm_swapchain.get_image_views().value();
 	m_swapchain.imageFormat = vkbm_swapchain.image_format;
 
-	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(m_window.extent.height * m_window.extent.width * 4) };
+	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(windowExtent.height * windowExtent.width * 4) };
 	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
 
 	const VkExtent3D imageExtent{
-		.width = static_cast<uint32_t>(m_window.extent.width),
-		.height = static_cast<uint32_t>(m_window.extent.height),
+		.width = static_cast<uint32_t>(windowExtent.width),
+		.height = static_cast<uint32_t>(windowExtent.height),
 		.depth = 1,
 	};
 
@@ -563,21 +561,17 @@ void Renderer::recreateSwapchain()
 	ZoneScoped;
 	
 	SDL_Event e;
-	int flags = SDL_GetWindowFlags(m_window.window);
+	int flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()));
 	bool minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
 	while (minimized)
 	{
-		flags = SDL_GetWindowFlags(m_window.window);
+		flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()));
 		minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
 		SDL_WaitEvent(&e);
 	}
-	int width = 0, height = 0;
-	SDL_GetWindowSize(m_window.window, &width, &height);
 
 	vkDeviceWaitIdle(m_device);
 
-	m_window.extent.width = width;
-	m_window.extent.height = height;
 	destroySwapchain();
 	createSwapchain();
 	initImguiRenderpass();
@@ -638,8 +632,8 @@ void Renderer::initImguiRenderpass()
 		.pNext = nullptr,
 		.renderPass = m_imguiPass,
 		.attachmentCount = 1,
-		.width = m_window.extent.width,
-		.height = m_window.extent.height,
+		.width = m_window->GetWidth(),
+		.height = m_window->GetHeight(),
 		.layers = 1,
 	};
 
@@ -710,7 +704,7 @@ void Renderer::initImgui()
 	
 	ImGui::CreateContext();
 	
-	ImGui_ImplSDL2_InitForVulkan(m_window.window);
+	ImGui_ImplSDL2_InitForVulkan(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()));
 	
 	//this initializes imgui for Vulkan
 	ImGui_ImplVulkan_InitInfo init_info = {
@@ -1079,8 +1073,6 @@ void Renderer::deinit()
 	vkb::destroy_debug_utils_messenger(m_instance, m_debugMessenger);
 	vkDestroyDevice(m_device, nullptr);
 	vkDestroyInstance(m_instance, nullptr);
-
-	SDL_DestroyWindow(m_window.window);
 }
 
 Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)

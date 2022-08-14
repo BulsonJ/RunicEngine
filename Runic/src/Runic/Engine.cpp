@@ -12,7 +12,8 @@ void Engine::init() {
 	ZoneScoped;
 
 	Log::Init();
-	m_rend.init();
+	m_window.Init(WindowProps{ .title = "Runic Engine",.width = 1920U, .height = 1080U });
+	m_rend.init(&m_window);
 	setupScene();
 }
 
@@ -82,7 +83,7 @@ void Engine::run()
 			}
 			if (e.window.event == SDL_WINDOWEVENT_RESIZED || e.window.event == SDL_WINDOWEVENT_MINIMIZED)
 			{
-				m_rend.m_window.resized = true;
+				//m_rend.m_window.resized = true;
 				break;
 			}
 			const float speed = 0.1f;
@@ -122,5 +123,6 @@ void Engine::deinit()
 {
 	ZoneScoped;
 	m_rend.deinit();
+	m_window.Deinit();
 }
 
