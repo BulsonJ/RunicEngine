@@ -724,11 +724,18 @@ void Renderer::initImgui()
 	io.Fonts->AddFontFromFileTTF("../../assets/fonts/Roboto-Medium.ttf", 13);
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+	//execute a gpu command to upload imgui font textures
 	immediateSubmit([&](VkCommandBuffer cmd) {
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
 		});
-
+	//
+	////clear font textures from cpu data
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
+	
+	m_instanceDeletionQueue.push_function([=]{
+		vkDestroyDescriptorPool(m_device, imguiPool, nullptr);
+		ImGui_ImplVulkan_Shutdown();
+		});
 }
 
 void Renderer::initGraphicsCommands()
@@ -1029,8 +1036,6 @@ void Renderer::deinit()
 	{
 		vkWaitForFences(m_device, 1, &m_frame[i].renderFen, true, 1000000000);
 	}
-
-	ImGui_ImplVulkan_Shutdown();
 
 	m_instanceDeletionQueue.flush();
 
