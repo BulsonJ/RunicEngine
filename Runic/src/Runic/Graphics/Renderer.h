@@ -20,7 +20,7 @@
 #include "Runic/Scene/Camera.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
-constexpr unsigned int MAX_OBJECTS = 100;
+constexpr unsigned int MAX_OBJECTS = 1024;
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
 constexpr VkFormat DEFAULT_FORMAT = { VK_FORMAT_R8G8B8A8_SRGB };
 constexpr VkFormat NORMAL_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM };
@@ -140,8 +140,6 @@ namespace Runic
 
 	struct RenderFrame
 	{
-		ImageHandle renderImage;
-
 		VkSemaphore presentSem;
 		VkSemaphore	renderSem;
 		VkFence renderFen;
@@ -214,10 +212,11 @@ namespace Runic
 		uint32_t m_currentSwapchainImage;
 
 		VkRenderPass m_imguiPass;
-		ImTextureID m_imguiRenderTexture[FRAME_OVERLAP];
+		ImTextureID m_imguiRenderTexture;
 		ImTextureID m_imguiDepthTexture;
 
 		RenderFrame m_frame[FRAME_OVERLAP];
+		ImageHandle m_renderImage;
 		ImageHandle m_depthImage;
 		int m_frameNumber{};
 

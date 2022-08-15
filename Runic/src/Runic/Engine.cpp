@@ -47,14 +47,14 @@ void Engine::setupScene() {
 		textures.push_back(texHandle);
 	}
 
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 16; ++i)
 	{
-		for (int j = 0; j < 6; ++j)
+		for (int j = 0; j < 16; ++j)
 		{
 			const Runic::RenderObject materialTestObject{
 				.meshHandle = cubeMeshHandle,
-				.textureHandle = i > 3 ? textures[2] : textures[4],
-				.normalHandle = i > 3 ? textures[3] : textures[5],
+				.textureHandle = i > 1 ? textures[2] : textures[4],
+				.normalHandle = i > 1 ? textures[3] : textures[5],
 				.translation = { 1.0f * j,-0.5f,1.0f * i},
 			};
 			auto renderObj = m_scene.AddRenderObject();

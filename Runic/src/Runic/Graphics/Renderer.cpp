@@ -184,13 +184,13 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 {
 	ZoneScoped;
 
+	assert(renderObjects.size() < MAX_OBJECTS);
+
 	m_currentCamera = camera;
 
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
-
-	Editor::ViewportTexture = m_imguiRenderTexture[getCurrentFrameNumber()];
 	Editor::DrawEditor();
 
 	ImGui::Render();
@@ -261,7 +261,7 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 	};
 
 	VkImageMemoryBarrier2 renderImgMemBarrier = presentImgMemBarrier;
-	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).image;
+	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(m_renderImage).image;
 
 	const VkImageMemoryBarrier2 depthImgMemBarrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -293,7 +293,7 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).imageView,
+		.imageView = ResourceManager::ptr->GetImage(m_renderImage).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -335,7 +335,7 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR,
 		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(getCurrentFrame().renderImage).image,
+		.image = ResourceManager::ptr->GetImage(m_renderImage).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.baseMipLevel = 0,
@@ -372,8 +372,6 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 	};
 	
 	vkCmdPipelineBarrier2(cmd, &dependencyInfo);
-
-	Editor::ViewportTexture = m_imguiRenderTexture[getCurrentFrameNumber()];
 
 	const VkClearValue clearValue{
 		.color = { 0.1f, 0.1f, 0.1f, 1.0f }
@@ -529,15 +527,13 @@ void Renderer::createSwapchain()
 	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
 	const VkFormat depthFormat{ VK_FORMAT_D32_SFLOAT };
 	const VkImageCreateInfo m_depthImageInfo = VulkanInit::imageCreateInfo(depthFormat, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, imageExtent);
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		m_frame[i].renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
+
+	m_renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
 			.imageInfo = imageInfo,
 			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
 			.usage = ImageCreateInfo::Usage::COLOR
 			});
 
-	}
 
 	m_depthImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
 			.imageInfo = m_depthImageInfo,
@@ -559,7 +555,7 @@ void Renderer::destroySwapchain()
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		ResourceManager::ptr->DestroyImage(m_frame[i].renderImage);
+		ResourceManager::ptr->DestroyImage(m_renderImage);
 	};
 	LOG_CORE_INFO("Destroy Swapchain");
 }
@@ -663,12 +659,10 @@ void Renderer::initImguiRenderpass()
 
 void Renderer::initImguiRenderImages()
 {
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		m_imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	}
+	m_imguiRenderTexture = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	m_imguiDepthTexture = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+	Editor::ViewportTexture = m_imguiRenderTexture;
 	Editor::ViewportDepthTexture = m_imguiDepthTexture;
 }
 
