@@ -199,9 +199,9 @@ void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<Rend
 
 	uint32_t m_swapchainImageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &m_swapchainImageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) //|| m_window.resized == true)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_dirtySwapchain)
 	{
-		//m_window.resized = false;
+		m_dirtySwapchain = false;
 		recreateSwapchain();
 		return;
 	}

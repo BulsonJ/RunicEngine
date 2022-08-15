@@ -17,6 +17,8 @@ namespace Runic
 		void Init(const WindowProps& props);
 		void Deinit();
 
+		void Update();
+
 		inline uint32_t GetWidth() const { return m_windowData.props.width; }
 		inline uint32_t GetHeight() const { return m_windowData.props.height; }
 		inline void* GetWindowPointer() const { return m_window; };

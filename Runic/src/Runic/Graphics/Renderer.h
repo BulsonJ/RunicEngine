@@ -167,8 +167,7 @@ namespace Runic
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 
-		Window* m_window;
-		//Runic::WindowContext m_window;
+		bool m_dirtySwapchain{ false };
 	private:
 		void initVulkan();
 		void initImguiRenderpass();
@@ -194,6 +193,8 @@ namespace Runic
 
 		[[nodiscard]] int getCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
 		[[nodiscard]] RenderFrame& getCurrentFrame() { return m_frame[getCurrentFrameNumber()]; }
+
+		Window* m_window;
 
 		VkInstance m_instance;
 		VkPhysicalDevice m_chosenGPU;

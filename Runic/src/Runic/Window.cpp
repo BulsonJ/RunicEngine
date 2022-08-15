@@ -26,3 +26,11 @@ void Runic::Window::Deinit()
 {
 	SDL_DestroyWindow(reinterpret_cast<SDL_Window*>(m_window));
 }
+
+void Runic::Window::Update()
+{
+	int w, h;
+	SDL_GetWindowSize(reinterpret_cast<SDL_Window*>(m_window), &w, &h);
+	m_windowData.props.width = static_cast<uint32_t>(w);
+	m_windowData.props.height = static_cast<uint32_t>(h);
+}
