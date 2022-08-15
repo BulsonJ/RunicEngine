@@ -27,7 +27,8 @@ struct ImageCreateInfo
 	VkImageCreateInfo imageInfo;
 	enum class ImageType
 	{
-		TEXTURE_2D
+		TEXTURE_2D,
+		TEXTURE_CUBEMAP
 	} imageType;
 	enum class Usage
 	{

@@ -18,40 +18,51 @@ void Engine::init() {
 }
 
 void Engine::setupScene() {
-	Runic::MeshDesc fileMesh;
-	Runic::MeshHandle fileMeshHandle {};
+	MeshDesc fileMesh;
+	MeshHandle fileMeshHandle {};
 	if (fileMesh.loadFromObj("../../assets/meshes/cube.obj"))
 	{
 		fileMeshHandle = m_rend.uploadMesh(fileMesh);
 	}
 
-	Runic::MeshDesc cubeMeshDesc = Runic::MeshDesc::GenerateCube();
-	Runic::MeshHandle cubeMeshHandle = m_rend.uploadMesh(cubeMeshDesc);
+	MeshDesc cubeMeshDesc = MeshDesc::GenerateCube();
+	MeshHandle cubeMeshHandle = m_rend.uploadMesh(cubeMeshDesc);
 
-	static const std::pair<std::string, Runic::TextureDesc::Format> texturePaths[] = {
-		{"../../assets/textures/default.png", Runic::TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/texture.jpg", Runic::TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/metal/metal_albedo.png", Runic::TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/metal/metal_normal.png", Runic::TextureDesc::Format::NORMAL},
-		{"../../assets/textures/bricks/bricks_albedo.png", Runic::TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/bricks/bricks_normal.png", Runic::TextureDesc::Format::NORMAL},
+	static const std::pair<std::string, TextureDesc::Format> texturePaths[] = {
+		{"../../assets/textures/default.png", TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/texture.jpg", TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/metal/metal_albedo.png", TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/metal/metal_normal.png", TextureDesc::Format::NORMAL},
+		{"../../assets/textures/bricks/bricks_albedo.png", TextureDesc::Format::DEFAULT},
+		{"../../assets/textures/bricks/bricks_normal.png", TextureDesc::Format::NORMAL},
 	};
 
-	std::vector<Runic::TextureHandle> textures;
+	std::vector<TextureHandle> textures;
 	for (int i = 0; i < std::size(texturePaths); ++i)
 	{
-		Runic::Texture img;
-		const Runic::TextureDesc textureDesc{ .format = texturePaths[i].second };
-		Runic::TextureUtil::LoadTextureFromFile(texturePaths[i].first.c_str(), textureDesc, img);
-		Runic::TextureHandle texHandle = m_rend.uploadTexture(img);
+		Texture img;
+		const TextureDesc textureDesc{ .format = texturePaths[i].second };
+		TextureUtil::LoadTextureFromFile(texturePaths[i].first.c_str(), textureDesc, img);
+		TextureHandle texHandle = m_rend.uploadTexture(img);
 		textures.push_back(texHandle);
 	}
+	const char* skyboxImagePaths[6] = {
+		"../../assets/textures/skybox/skyrender0004.png",
+		"../../assets/textures/skybox/skyrender0001.png",
+		"../../assets/textures/skybox/skyrender0003.png",
+		"../../assets/textures/skybox/skyrender0006.png",
+		"../../assets/textures/skybox/skyrender0002.png",
+		"../../assets/textures/skybox/skyrender0005.png",
+	};
+	Texture skyboxImage;
+	TextureUtil::LoadTextureFromFile(*skyboxImagePaths, { .type = TextureDesc::Type::TEXTURE_CUBEMAP }, skyboxImage);
+	const TextureHandle skybox = m_rend.uploadTexture(skyboxImage);
 
 	for (int i = 0; i < 16; ++i)
 	{
 		for (int j = 0; j < 16; ++j)
 		{
-			const Runic::RenderObject materialTestObject{
+			const RenderObject materialTestObject{
 				.meshHandle = cubeMeshHandle,
 				.textureHandle = i > 1 ? textures[2] : textures[4],
 				.normalHandle = i > 1 ? textures[3] : textures[5],

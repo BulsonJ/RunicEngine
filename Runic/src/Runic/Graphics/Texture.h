@@ -9,13 +9,19 @@ namespace Runic
 			DEFAULT,
 			NORMAL,
 		} format;
+
+		enum class Type
+		{
+			TEXTURE_2D,
+			TEXTURE_CUBEMAP
+		} type;
 	};
 
 	struct Texture
 	{
 		~Texture();
 
-		TextureDesc desc;
+		TextureDesc m_desc;
 
 		void* ptr = nullptr;
 		int texWidth;
@@ -26,6 +32,7 @@ namespace Runic
 	namespace TextureUtil
 	{
 		void LoadTextureFromFile(const char* file, TextureDesc textureDesc, Texture& outImage);
+		void LoadCubemapFromFile(const char* file[6], TextureDesc textureDesc, Texture& outImage);
 	}
 
 }

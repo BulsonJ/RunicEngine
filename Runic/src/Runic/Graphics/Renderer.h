@@ -186,6 +186,7 @@ namespace Runic
 		void drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_ptr<RenderObject>>& renderObjects);
 
 		ImageHandle uploadTextureInternal(const Runic::Texture& image);
+		ImageHandle uploadTextureInternalCubemap(const Runic::Texture& image);
 
 		void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 

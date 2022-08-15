@@ -102,6 +102,9 @@ ImageHandle ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 	case ImageCreateInfo::ImageType::TEXTURE_2D:
 		imageinfo = VulkanInit::imageViewCreateInfo(createInfo.imageInfo.format, newImage.image, imageViewType);
 		break;
+	case ImageCreateInfo::ImageType::TEXTURE_CUBEMAP:
+		imageinfo = VulkanInit::imageViewCreateInfo(createInfo.imageInfo.format, newImage.image, imageViewType, VK_IMAGE_VIEW_TYPE_CUBE, 6);
+		break;
 	default:
 		break;
 	}

@@ -1133,7 +1133,7 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 		return Runic::TextureHandle(0);
 	}
 
-	ImageHandle newTextureHandle = uploadTextureInternal(texture);
+	ImageHandle newTextureHandle = (texture.m_desc.type == TextureDesc::Type::TEXTURE_CUBEMAP ? uploadTextureInternalCubemap(texture) : uploadTextureInternal(texture));
 	Runic::TextureHandle bindlessHandle = m_bindlessImages.add(newTextureHandle);
 
 	VkDescriptorImageInfo bindlessImageInfo = {
@@ -1165,7 +1165,7 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 {
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
-	const VkFormat image_format = {image.desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
+	const VkFormat image_format = {image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
 
 	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
@@ -1254,6 +1254,100 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 
 	return newImage;
 }
+
+ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
+{
+	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
+	const VkFormat image_format = { image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
+
+	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+			.size = imageSize * 6,
+			.usage = GFX::Buffer::Usage::NONE,
+			.transfer = BufferCreateInfo::Transfer::SRC,
+		});
+
+	//copy data to buffer
+
+	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, image.ptr, static_cast<size_t>(imageSize));
+
+	const VkExtent3D imageExtent{
+		.width = static_cast<uint32_t>(image.texWidth),
+		.height = static_cast<uint32_t>(image.texHeight),
+		.depth = 1,
+	};
+
+	const VkImageCreateInfo dimg_info = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, 6);
+
+	ImageHandle newImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_CUBEMAP });
+
+	immediateSubmit([&](VkCommandBuffer cmd) {
+		const VkImageSubresourceRange range{
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = 0,
+			.levelCount = 1,
+			.baseArrayLayer = 0,
+			.layerCount = 6,
+		};
+
+		const VkImageMemoryBarrier2 imageBarrier_toTransfer{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+			.srcAccessMask = 0,
+			.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.subresourceRange = range,
+		};
+
+		VkDependencyInfo imgDependencyInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &imageBarrier_toTransfer,
+		};
+
+		vkCmdPipelineBarrier2(cmd, &imgDependencyInfo);
+
+		const VkBufferImageCopy copyRegion = {
+			.bufferOffset = 0,
+			.bufferRowLength = 0,
+			.bufferImageHeight = 0,
+			.imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.mipLevel = 0,
+				.baseArrayLayer = 0,
+				.layerCount = 1},
+			.imageExtent = imageExtent,
+		};
+
+		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+		const VkImageMemoryBarrier2 imageBarrier_toReadable{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+			.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+			.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.subresourceRange = range,
+		};
+
+		VkDependencyInfo imgRedableDependencyInfo = {
+			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+			.imageMemoryBarrierCount = 1,
+			.pImageMemoryBarriers = &imageBarrier_toReadable,
+		};
+
+		vkCmdPipelineBarrier2(cmd, &imgRedableDependencyInfo);
+		});
+
+	ResourceManager::ptr->DestroyBuffer(stagingBuffer);
+
+	return newImage;
+}
+
 
 void Renderer::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function)
 {
