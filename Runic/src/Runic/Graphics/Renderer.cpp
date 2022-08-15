@@ -54,6 +54,12 @@ void Renderer::init(Window* window)
 	initComputeCommands();
 	initSyncStructures();
 
+	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
+	vkCreateSampler(m_device, &samplerInfo, nullptr, &m_defaultSampler);
+	m_instanceDeletionQueue.push_function([=] {
+		vkDestroySampler(m_device, m_defaultSampler, nullptr);
+		});
+
 	initImguiRenderpass();
 	initImgui();
 	initImguiRenderImages();
@@ -63,11 +69,7 @@ void Renderer::init(Window* window)
 
 	initShaderData();
 
-	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
-	vkCreateSampler(m_device, &samplerInfo, nullptr, &defaultSampler);
-	m_instanceDeletionQueue.push_function([=] {
-		vkDestroySampler(m_device, defaultSampler, nullptr);
-		});
+
 
 }
 
@@ -661,19 +663,11 @@ void Renderer::initImguiRenderpass()
 
 void Renderer::initImguiRenderImages()
 {
-	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
-
-	VkSampler imageSampler;
-	vkCreateSampler(m_device, &samplerInfo, nullptr, &imageSampler);
-	m_instanceDeletionQueue.push_function([=] {
-		vkDestroySampler(m_device, imageSampler, nullptr);
-	});
-
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		m_imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(m_frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_imguiRenderTexture[i] = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_frame[i].renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	}
-	m_imguiDepthTexture = ImGui_ImplVulkan_AddTexture(imageSampler, ResourceManager::ptr->GetImage(m_depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_imguiDepthTexture = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	Editor::ViewportDepthTexture = m_imguiDepthTexture;
 }
@@ -1149,7 +1143,7 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 	Runic::TextureHandle bindlessHandle = m_bindlessImages.add(newTextureHandle);
 
 	VkDescriptorImageInfo bindlessImageInfo = {
-		.sampler = defaultSampler,
+		.sampler = m_defaultSampler,
 		.imageView = ResourceManager::ptr->GetImage(m_bindlessImages.get(bindlessHandle)).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 	};
