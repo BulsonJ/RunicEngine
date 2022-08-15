@@ -161,9 +161,10 @@ namespace Runic
 		void deinit();
 
 		// Public rendering API
-		void draw(Camera* const camera, const std::vector<std::shared_ptr<RenderObject>>& renderObjects);
+		void draw(Camera* const camera, const std::vector<RenderObject*>& renderObjects);
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
+		void setSkybox(TextureHandle texture);
 
 		bool m_dirtySwapchain{ false };
 	private:
@@ -183,7 +184,7 @@ namespace Runic
 
 		void initShaderData();
 
-		void drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_ptr<RenderObject>>& renderObjects);
+		void drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>& renderObjects);
 
 		ImageHandle uploadTextureInternal(const Runic::Texture& image);
 		ImageHandle uploadTextureInternalCubemap(const Runic::Texture& image);
@@ -234,5 +235,9 @@ namespace Runic
 		std::unordered_map<std::string, MaterialType> m_materials;
 		Slotmap<ImageHandle> m_bindlessImages;
 		VkSampler m_defaultSampler;
+
+		RenderObject m_skybox;
+		MeshHandle m_skyboxMesh;
+		TextureHandle m_skyboxTexture;
 	};
 }

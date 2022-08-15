@@ -22,6 +22,8 @@
 
 #include <iostream>
 #include <memory>
+#include <unordered_set>
+#include <stb_image.h>
 
 #include "Runic/Graphics/Internal/VulkanInit.h"
 #include "Runic/Editor.h"
@@ -76,16 +78,20 @@ void Renderer::init(Window* window)
 void Renderer::initShaderData()
 {
 	ZoneScoped;
+
+	m_skybox.meshHandle = uploadMesh(MeshDesc::GenerateSkyboxCube());
+	m_skybox.textureHandle = 0;
+
 	Editor::lightDirection = &m_sunlight.direction;
 	Editor::lightColor = &m_sunlight.color;
 	Editor::lightAmbientColor = &m_sunlight.ambientColor;
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_ptr<RenderObject>>& renderObjects)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>& renderObjects)
 {
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
-	const Runic::RenderObject* FIRST = renderObjects.data()->get();
+	const Runic::RenderObject* FIRST = renderObjects[0];
 
 	// fill buffers
 	// binding 0
@@ -96,7 +102,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_pt
 
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const Runic::RenderObject& object = *renderObjects[i].get();
+		const Runic::RenderObject& object = *renderObjects[i];
 
 		drawDataSSBO[i].transformIndex = i;
 		drawDataSSBO[i].materialIndex = i;
@@ -115,8 +121,20 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_pt
 							0,
 							0},
 		};
-
 	}
+
+	int skyboxCount = COUNT;
+	drawDataSSBO[skyboxCount].transformIndex = skyboxCount;
+	drawDataSSBO[skyboxCount].materialIndex = skyboxCount;
+
+	materialSSBO[skyboxCount] = GPUData::Material{
+			.textureIndices = {m_skybox.textureHandle.value(),
+							0,
+							0,
+							0},
+	};
+
+
 	// binding 1
 		//slot 0 - camera
 	//const float rotationSpeed = 0.5f;
@@ -131,12 +149,12 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_pt
 
 	const MaterialType* lastMaterialType = nullptr;
 	const RenderMesh* lastMesh = nullptr;
-	for (int i = 0; i < COUNT; ++i)
+	for (int i = 0; i < COUNT + 1; ++i)
 	{
-		const Runic::RenderObject& object = *renderObjects[i].get();
+		const Runic::RenderObject& object = i != COUNT ? *renderObjects[i] : m_skybox;
 
 		// TODO : RenderObjects hold material handle for different m_materials
-		const MaterialType* currentMaterialType{ &m_materials["defaultMaterial"] };
+		const MaterialType* currentMaterialType{ i != COUNT ? &m_materials["defaultMaterial"] : &m_materials["skyboxMaterial"]};
 		if (currentMaterialType != lastMaterialType)
 		{
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
@@ -180,7 +198,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<std::shared_pt
 	}
 }
 
-void Renderer::draw(Camera* const camera, const std::vector<std::shared_ptr<RenderObject>>& renderObjects)
+void Renderer::draw(Camera* const camera, const std::vector<RenderObject*>& renderObjects)
 {
 	ZoneScoped;
 
@@ -1004,6 +1022,22 @@ void Renderer::initShaders()
 	m_materials[defaultMaterialName] = { .pipeline = defaultPipeline, .pipelineLayout = defaultPipelineLayout };
 	LOG_CORE_INFO("Material created: " + defaultMaterialName);
 
+	VkShaderModule skyboxVertexShader = shaderLoadFunc((std::string)"../../assets/shaders/skybox.vert.spv");
+	VkShaderModule skyboxFragShader = shaderLoadFunc((std::string)"../../assets/shaders/skybox.frag.spv");
+
+	buildInfo.shaderStages = { 
+		{VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, skyboxVertexShader)},
+		{VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, skyboxFragShader)}
+	};
+	buildInfo.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, false);
+
+	VkPipeline skyboxPipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);
+	const std::string skyboxMaterialName = "skyboxMaterial";
+	m_materials[skyboxMaterialName] = { .pipeline = skyboxPipeline, .pipelineLayout = defaultPipelineLayout };
+	LOG_CORE_INFO("Material created: " + skyboxMaterialName);
+
+	vkDestroyShaderModule(m_device, skyboxVertexShader, nullptr);
+	vkDestroyShaderModule(m_device, skyboxFragShader, nullptr);
 	vkDestroyShaderModule(m_device, vertexShader, nullptr);
 	vkDestroyShaderModule(m_device, fragShader, nullptr);
 }
@@ -1023,10 +1057,20 @@ void Renderer::deinit()
 
 	delete ResourceManager::ptr;
 
+	std::unordered_set<VkPipelineLayout> deletedPipelineLayouts;
+	std::unordered_set<VkPipeline> deletedPipelines;
 	for (auto& material : m_materials)
 	{
-		vkDestroyPipelineLayout(m_device, material.second.pipelineLayout, nullptr);
-		vkDestroyPipeline(m_device, material.second.pipeline, nullptr);
+		if (material.second.pipelineLayout != VK_NULL_HANDLE && deletedPipelineLayouts.count(material.second.pipelineLayout) == 0)
+		{
+			deletedPipelineLayouts.insert(material.second.pipelineLayout);
+			vkDestroyPipelineLayout(m_device, material.second.pipelineLayout, nullptr);
+		}
+		if (material.second.pipeline != VK_NULL_HANDLE && deletedPipelines.count(material.second.pipeline) == 0)
+		{
+			deletedPipelines.insert(material.second.pipeline);
+			vkDestroyPipeline(m_device, material.second.pipeline, nullptr);
+		}
 	}
 
 	vkDestroyDescriptorPool(m_device, m_scenePool, nullptr);
@@ -1162,6 +1206,11 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 	return bindlessHandle;
 }
 
+void Runic::Renderer::setSkybox(TextureHandle texture)
+{
+	m_skybox.textureHandle = texture;
+}
+
 ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 {
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
@@ -1175,7 +1224,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 
 	//copy data to buffer
 
-	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, image.ptr, static_cast<size_t>(imageSize));
+	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, image.ptr[0], static_cast<size_t>(imageSize));
 
 	const VkExtent3D imageExtent{
 		.width = static_cast<uint32_t>(image.texWidth),
@@ -1257,7 +1306,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 
 ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 {
-	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
+	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texSize) };
 	const VkFormat image_format = { image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
 
 	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
@@ -1267,8 +1316,19 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 		});
 
 	//copy data to buffer
+	void* pixels[6] = {
+		image.ptr[0],
+		image.ptr[1],
+		image.ptr[2],
+		image.ptr[3],
+		image.ptr[4],
+		image.ptr[5],
+	};
 
-	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, image.ptr, static_cast<size_t>(imageSize));
+	for (int i = 0; i < 6; ++i)
+	{
+		memcpy(static_cast<char*>(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr) + (i * imageSize), pixels[i], static_cast<size_t>(image.texSize));
+	}
 
 	const VkExtent3D imageExtent{
 		.width = static_cast<uint32_t>(image.texWidth),
@@ -1316,7 +1376,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 			.imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 				.mipLevel = 0,
 				.baseArrayLayer = 0,
-				.layerCount = 1},
+				.layerCount = 6},
 			.imageExtent = imageExtent,
 		};
 

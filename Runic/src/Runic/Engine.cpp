@@ -55,8 +55,9 @@ void Engine::setupScene() {
 		"../../assets/textures/skybox/skyrender0005.png",
 	};
 	Texture skyboxImage;
-	TextureUtil::LoadTextureFromFile(*skyboxImagePaths, { .type = TextureDesc::Type::TEXTURE_CUBEMAP }, skyboxImage);
+	TextureUtil::LoadCubemapFromFile(skyboxImagePaths, { .type = TextureDesc::Type::TEXTURE_CUBEMAP }, skyboxImage);
 	const TextureHandle skybox = m_rend.uploadTexture(skyboxImage);
+	m_rend.setSkybox(skybox);
 
 	for (int i = 0; i < 16; ++i)
 	{
@@ -125,9 +126,21 @@ void Engine::run()
 				{
 					m_scene.m_camera.get()->m_pos = m_scene.m_camera.get()->m_pos + (speed * glm::vec3{ 0.0f, 1.0f, 0.0f });
 				}
+				if (e.key.keysym.sym == SDLK_r)
+				{
+					m_scene.m_camera.get()->m_yaw = m_scene.m_camera.get()->m_yaw + (speed * -10.0f);
+				}
+				if (e.key.keysym.sym == SDLK_t)
+				{
+					m_scene.m_camera.get()->m_yaw = m_scene.m_camera.get()->m_yaw + (speed * 10.0f);
+				}
 			}
 		}
-		m_rend.draw(m_scene.m_camera.get(), m_scene.m_renderObjects);
+		std::vector<RenderObject*> renderObjects;
+		renderObjects.reserve(m_scene.m_renderObjects.size());
+		std::transform(m_scene.m_renderObjects.cbegin(), m_scene.m_renderObjects.cend(), std::back_inserter(renderObjects),
+			[](auto& ptr) { return ptr.get(); });
+		m_rend.draw(m_scene.m_camera.get(), renderObjects);
 	}
 }
 
