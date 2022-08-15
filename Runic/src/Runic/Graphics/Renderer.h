@@ -231,7 +231,7 @@ namespace Runic
 
 		Slotmap<RenderMesh> m_meshes;
 		std::unordered_map<std::string, MaterialType> m_materials;
-
 		Slotmap<ImageHandle> m_bindlessImages;
+		VkSampler defaultSampler;
 	};
 }

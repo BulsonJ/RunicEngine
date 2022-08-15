@@ -42,8 +42,7 @@ layout(std140,set = 0, binding = 2) readonly buffer MaterialDataBuffer{
 	MaterialData objects[];
 } materialDataArray;
 
-layout (set = 0, binding = 3) uniform sampler samp;
-layout (set = 0, binding = 4) uniform texture2D bindlessTextures[];
+layout (set = 0, binding = 3) uniform sampler2D bindlessTextures[];
 
 void main(void)	{
 	DrawData draw = drawDataArray.objects[inDrawDataIndex];
@@ -62,7 +61,7 @@ void main(void)	{
 	// Diffuse
 	vec3 materialNormal;
 	if (normalIndex >= 0){
-		materialNormal = texture(sampler2D(bindlessTextures[(nonuniformEXT(normalIndex))], samp), inTexCoords).rgb;
+		materialNormal = texture(bindlessTextures[(nonuniformEXT(normalIndex))], inTexCoords).rgb;
 	} else {
 		materialNormal = inNormal;
 
@@ -74,7 +73,7 @@ void main(void)	{
 
 	vec3 materialDiffuse;
 	if (diffuseIndex >= 0){
-		materialDiffuse = texture(sampler2D(bindlessTextures[(nonuniformEXT(diffuseIndex))], samp), inTexCoords).rgb;
+		materialDiffuse = texture(bindlessTextures[(nonuniformEXT(diffuseIndex))], inTexCoords).rgb;
 	} else {
 		materialDiffuse = (diff * materialDiffuseColour);
 	}

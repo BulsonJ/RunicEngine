@@ -63,6 +63,12 @@ void Renderer::init(Window* window)
 
 	initShaderData();
 
+	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
+	vkCreateSampler(m_device, &samplerInfo, nullptr, &defaultSampler);
+	m_instanceDeletionQueue.push_function([=] {
+		vkDestroySampler(m_device, defaultSampler, nullptr);
+		});
+
 }
 
 void Renderer::initShaderData()
@@ -830,7 +836,6 @@ void Renderer::initSyncStructures()
 
 void Renderer::initShaders()
 {
-
 	ZoneScoped;
 
 	// create descriptor pool
@@ -838,8 +843,7 @@ void Renderer::initShaders()
 	{
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10 },
-		{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 32 },
-		{ VK_DESCRIPTOR_TYPE_SAMPLER, 10 }
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 32 },
 	};
 	VkDescriptorPoolCreateInfo poolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -867,7 +871,6 @@ void Renderer::initShaders()
 		0,
 		0,
 		0,
-		0,
 		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
 	};
 
@@ -881,8 +884,7 @@ void Renderer::initShaders()
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)},
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1)},
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 2)},
-		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3)},
-		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_SHADER_STAGE_FRAGMENT_BIT, 4, 32)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3, 32)},
 	};
 
 	const VkDescriptorSetLayoutCreateInfo globalSetLayoutInfo = {
@@ -934,15 +936,6 @@ void Renderer::initShaders()
 		.pSetLayouts = &m_sceneSetLayout,
 	};
 
-	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
-	VkSampler imageSampler;
-	vkCreateSampler(m_device, &samplerInfo, nullptr, &imageSampler);
-	m_instanceDeletionQueue.push_function([=] {
-		vkDestroySampler(m_device, imageSampler, nullptr);
-		});
-
-	VkDescriptorImageInfo samplerDescInfo{.sampler = imageSampler };
-
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
 		vkAllocateDescriptorSets(m_device, &allocInfo, &m_frame[i].globalSet);
@@ -962,7 +955,6 @@ void Renderer::initShaders()
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_frame[i].globalSet, &globalBuffers[0], 0),
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_frame[i].globalSet, &globalBuffers[1], 1),
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_frame[i].globalSet, &globalBuffers[2], 2),
-			VulkanInit::writeDescriptorImage(VK_DESCRIPTOR_TYPE_SAMPLER, m_frame[i].globalSet, &samplerDescInfo, 3)
 		};
 		vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(std::size(globalWrites)), globalWrites, 0, nullptr);
 		const VkWriteDescriptorSet sceneWrites[] = {
@@ -1152,12 +1144,14 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 	{
 		return Runic::TextureHandle(0);
 	}
+
 	ImageHandle newTextureHandle = uploadTextureInternal(texture);
 	Runic::TextureHandle bindlessHandle = m_bindlessImages.add(newTextureHandle);
 
 	VkDescriptorImageInfo bindlessImageInfo = {
+		.sampler = defaultSampler,
 		.imageView = ResourceManager::ptr->GetImage(m_bindlessImages.get(bindlessHandle)).imageView,
-		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 	};
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
@@ -1165,10 +1159,10 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 		VkWriteDescriptorSet write{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = m_frame[i].globalSet,
-			.dstBinding = 4,
+			.dstBinding = 3,
 			.dstArrayElement = bindlessHandle,
 			.descriptorCount = static_cast<uint32_t>(1),
-			.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 			.pImageInfo = &bindlessImageInfo,
 		};
 
