@@ -849,7 +849,7 @@ void Renderer::initShaders()
 	{
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10 },
-		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 32 },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURES },
 	};
 	VkDescriptorPoolCreateInfo poolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -890,7 +890,7 @@ void Renderer::initShaders()
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)},
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1)},
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 2)},
-		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3, 32)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3, MAX_TEXTURES)},
 	};
 
 	const VkDescriptorSetLayoutCreateInfo globalSetLayoutInfo = {
@@ -918,7 +918,7 @@ void Renderer::initShaders()
 
 	// create descriptors
 
-	uint32_t counts[] = { 32 };  // Set 0 has a variable count descriptor with a maximum of 32 elements
+	uint32_t counts[] = { MAX_TEXTURES };  // Set 0 has a variable count descriptor with a maximum of 32 elements
 
 	VkDescriptorSetVariableDescriptorCountAllocateInfo globalSetCounts = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,

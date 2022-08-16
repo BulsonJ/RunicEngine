@@ -39,6 +39,7 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 	}
 
 	std::unordered_map<size_t, TextureHandle> loadedTextures;
+	std::unordered_map<size_t, TextureHandle> loadedNormalTextures;
 	for (size_t m = 0; m < materials.size(); m++)
 	{
 		if (materials[m].diffuse_texname != "" && loadedTextures.count(m) == 0)
@@ -48,6 +49,15 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 			TextureUtil::LoadTextureFromFile(textureName.c_str(), { .format = TextureDesc::Format::DEFAULT }, objectTexture);
 			const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
 			loadedTextures[m] = objectTextureHandle;
+			LOG_CORE_TRACE("Texture Uploaded: " + textureName);
+		}
+		if (materials[m].normal_texname != "" && materials[m].diffuse_texname != materials[m].ambient_texname && loadedNormalTextures.count(m) == 0)
+		{
+			Texture objectTexture;
+			const std::string textureName = (directory + "/" + materials[m].ambient_texname);
+			TextureUtil::LoadTextureFromFile(textureName.c_str(), { .format = TextureDesc::Format::NORMAL }, objectTexture);
+			const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
+			loadedNormalTextures[m] = objectTextureHandle;
 			LOG_CORE_TRACE("Texture Uploaded: " + textureName);
 		}
 	}
@@ -101,6 +111,7 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 		RenderObject newRenderObject{
 			.meshHandle = m_rend->uploadMesh(newMesh),
 			.textureHandle = loadedTextures[shapes[s].mesh.material_ids[0]],
+			.normalHandle = loadedNormalTextures[shapes[s].mesh.material_ids[0]],
 		};
 		newRenderObjects.push_back(newRenderObject);
 	}

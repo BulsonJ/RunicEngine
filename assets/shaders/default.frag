@@ -60,7 +60,7 @@ void main(void)	{
 
 	// Diffuse
 	vec3 materialNormal;
-	if (normalIndex >= 0){
+	if (normalIndex > 0){
 		materialNormal = texture(bindlessTextures[(nonuniformEXT(normalIndex))], inTexCoords).rgb;
 	} else {
 		materialNormal = inNormal;
@@ -72,7 +72,7 @@ void main(void)	{
 	vec3 diffuse = sunlightDiffuse;
 
 	vec3 materialDiffuse;
-	if (diffuseIndex >= 0){
+	if (diffuseIndex > 0){
 		materialDiffuse = texture(bindlessTextures[(nonuniformEXT(diffuseIndex))], inTexCoords).rgb;
 	} else {
 		materialDiffuse = (diff * materialDiffuseColour);
