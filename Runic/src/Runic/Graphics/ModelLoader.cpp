@@ -48,6 +48,7 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 			TextureUtil::LoadTextureFromFile(textureName.c_str(), { .format = TextureDesc::Format::DEFAULT }, objectTexture);
 			const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
 			loadedTextures[m] = objectTextureHandle;
+			LOG_CORE_TRACE("Texture Uploaded: " + textureName);
 		}
 	}
 
@@ -104,5 +105,6 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 		newRenderObjects.push_back(newRenderObject);
 	}
 
+	LOG_CORE_TRACE("Mesh Uploaded: " + filename);
 	return newRenderObjects;
 }

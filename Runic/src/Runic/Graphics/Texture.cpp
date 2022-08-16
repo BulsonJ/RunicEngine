@@ -43,8 +43,6 @@ void TextureUtil::LoadTextureFromFile(const char* file, TextureDesc textureDesc,
 	outImage.m_desc = textureDesc;
 	outImage.ptr[0] = pixels;
 
-	LOG_CORE_INFO(file);
-
 	return;
 }
 

@@ -1166,7 +1166,6 @@ Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)
 		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
 	}
 
-	LOG_CORE_INFO("Mesh Uploaded");
 	return m_meshes.add(renderMesh);
 }
 
@@ -1200,8 +1199,6 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 
 		vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
 	}
-
-	LOG_CORE_INFO("Texture Uploaded");
 
 	return bindlessHandle;
 }

@@ -17,7 +17,7 @@ public:
 	T& get(uint32_t handle);
 
 	// TODO: make private
-	std::array<T, 8096> m_array;
+	std::array<T, 4096> m_array;
 private:
 	uint32_t lastHandle{ 0U };
 	[[nodiscard]] uint32_t getNewHandle()
