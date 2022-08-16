@@ -7,6 +7,8 @@
 #include "Runic/Graphics/Mesh.h"
 #include "Runic/Graphics/Texture.h"
 
+#include <unordered_map>
+
 using namespace Runic;
 
 Runic::ModelLoader::ModelLoader(Renderer* rend) : m_rend(rend)
@@ -14,7 +16,7 @@ Runic::ModelLoader::ModelLoader(Renderer* rend) : m_rend(rend)
 
 } 
 
-std::optional<RenderObject> ModelLoader::LoadModelFromObj(const std::string& filename)
+std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std::string& filename)
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -36,10 +38,24 @@ std::optional<RenderObject> ModelLoader::LoadModelFromObj(const std::string& fil
 		return std::nullopt;
 	}
 
-	MeshDesc newMesh;
+	std::unordered_map<size_t, TextureHandle> loadedTextures;
+	for (size_t m = 0; m < materials.size(); m++)
+	{
+		if (materials[m].diffuse_texname != "" && loadedTextures.count(m) == 0)
+		{
+			Texture objectTexture;
+			const std::string textureName = (directory + "/" + materials[m].diffuse_texname);
+			TextureUtil::LoadTextureFromFile(textureName.c_str(), { .format = TextureDesc::Format::DEFAULT }, objectTexture);
+			const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
+			loadedTextures[m] = objectTextureHandle;
+		}
+	}
+
+	std::vector<RenderObject> newRenderObjects;
 
 	for (size_t s = 0; s < shapes.size(); s++)
 	{
+		MeshDesc newMesh;
 		size_t index_offset = 0;
 		for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++)
 		{
@@ -81,19 +97,12 @@ std::optional<RenderObject> ModelLoader::LoadModelFromObj(const std::string& fil
 			}
 			index_offset += fv;
 		}
+		RenderObject newRenderObject{
+			.meshHandle = m_rend->uploadMesh(newMesh),
+			.textureHandle = loadedTextures[shapes[s].mesh.material_ids[0]],
+		};
+		newRenderObjects.push_back(newRenderObject);
 	}
 
-	const MeshHandle objectMeshHandle = m_rend->uploadMesh(newMesh);
-
-	Texture objectTexture;
-	const std::string textureName = (directory + "/" + materials[0].diffuse_texname);
-	TextureUtil::LoadTextureFromFile(textureName.c_str(), {.format = TextureDesc::Format::DEFAULT}, objectTexture);
-	const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
-
-	RenderObject newRenderObject{
-		.meshHandle = objectMeshHandle,
-		.textureHandle = objectTextureHandle,
-	};
-
-	return newRenderObject;
+	return newRenderObjects;
 }

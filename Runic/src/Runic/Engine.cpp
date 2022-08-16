@@ -22,12 +22,15 @@ void Engine::init() {
 void Engine::setupScene() {
 	ModelLoader loader(&m_rend);
 
-	if (std::optional<RenderObject> sponzaObject = loader.LoadModelFromObj("../../assets/models/sponza/sponza.obj"); sponzaObject.has_value())
+	if (std::optional<std::vector<RenderObject>> sponzaObject = loader.LoadModelFromObj("../../assets/models/sponza/sponza.obj"); sponzaObject.has_value())
 	{
-		std::shared_ptr<RenderObject> sponza = m_scene.AddRenderObject();
-		RenderObject sponzaValue = sponzaObject.value();
-		sponzaValue.scale = { 0.01f,0.01f,0.01f };
-		*sponza.get() = sponzaValue;
+		for (const auto& rendObj : sponzaObject.value())
+		{
+			std::shared_ptr<RenderObject> obj = m_scene.AddRenderObject();
+			RenderObject sponzaValue = rendObj;
+			sponzaValue.scale = { 0.01f,0.01f,0.01f };
+			*obj.get() = sponzaValue;
+		}
 	}
 
 	const char* skyboxImagePaths[6] = {
