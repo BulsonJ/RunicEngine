@@ -9,7 +9,7 @@
 using namespace Runic;
 
 static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
-ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse;
+ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
 
 namespace Runic
 {
@@ -56,40 +56,37 @@ void Editor::DrawEditor()
 			// split the dockspace into 2 nodes -- DockBuilderSplitNode takes in the following args in the following order
 			//   window ID to split, direction, fraction (between 0 and 1), the final two setting let's us choose which id we want (which ever one we DON'T set as NULL, will be returned by the function)
 			//                                                              out_id_at_dir is the id of the node in the direction we specified earlier, out_id_at_opposite_dir is in the opposite direction
-			auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.3f, nullptr, &dockspace_id);
-			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.7f, nullptr, &dockspace_id);
-			auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.3f, nullptr, &dock_id_right);
+			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.2f, nullptr, &dockspace_id);
 
 			// we now dock our windows into the docking node we made above
-			ImGui::DockBuilderDockWindow("Log", dock_id_down);
-			ImGui::DockBuilderDockWindow("SceneGraph", dock_id_left);
-			ImGui::DockBuilderDockWindow("Viewport", dock_id_right);
-			ImGui::DockBuilderDockWindow("Viewport Depth", dock_id_right);
+			ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
+			ImGui::DockBuilderDockWindow("Log", dock_id_right);
+			ImGui::DockBuilderDockWindow("SceneGraph", dock_id_right);
+			ImGui::DockBuilderDockWindow("Viewport Depth", dockspace_id);
 			ImGui::DockBuilderFinish(dockspace_id);
 		}
 	}
 
 	ImGui::End();
 
-	DrawViewportWindow();
-	DrawSceneGraph();
-	DrawLog();
-}
-
-void Editor::DrawViewportWindow()
-{
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	DrawViewport();
-	DrawViewportDepth();
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar(2);
+	DrawViewportDepth();
+	DrawSceneGraph();
+	DrawLog();
 }
 
 void Editor::DrawViewport()
 {
 	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+	//ImVec2 regionSize = ImGui::GetContentRegionMax();
+	//float aspectRatio = 16.0f / 9.0f;
+	//
+	//float new_height = (9.0f * regionSize.x) / 16.0f;
 	ImGui::Image(Editor::ViewportTexture, ImGui::GetContentRegionMax());
 	ImGui::End();
 }

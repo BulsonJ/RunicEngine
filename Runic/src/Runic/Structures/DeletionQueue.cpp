@@ -1,4 +1,4 @@
-#include "Runic/DeletionQueue.h"
+#include "Runic/Structures/DeletionQueue.h"
 
 void DeletionQueue::push_function(std::function<void()>&& function)
 {

@@ -18,7 +18,6 @@ namespace Runic
 
 		void DrawEditor();
 
-		void DrawViewportWindow();
 		void DrawViewport();
 		void DrawViewportDepth();
 		void DrawSceneGraph();

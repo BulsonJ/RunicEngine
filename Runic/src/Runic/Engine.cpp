@@ -5,6 +5,7 @@
 #include <backends/imgui_impl_sdl.h>
 
 #include "Runic/Log.h"
+#include "Runic/Graphics/ModelLoader.h"
 
 using namespace Runic;
 
@@ -14,38 +15,21 @@ void Engine::init() {
 	Log::Init();
 	m_window.Init(WindowProps{ .title = "Runic Engine",.width = 1920U, .height = 1080U });
 	m_rend.init(&m_window);
+
 	setupScene();
 }
 
 void Engine::setupScene() {
-	MeshDesc fileMesh;
-	MeshHandle fileMeshHandle {};
-	if (fileMesh.loadFromObj("../../assets/meshes/cube.obj"))
+	ModelLoader loader(&m_rend);
+
+	if (std::optional<RenderObject> sponzaObject = loader.LoadModelFromObj("../../assets/models/sponza/sponza.obj"); sponzaObject.has_value())
 	{
-		fileMeshHandle = m_rend.uploadMesh(fileMesh);
+		std::shared_ptr<RenderObject> sponza = m_scene.AddRenderObject();
+		RenderObject sponzaValue = sponzaObject.value();
+		sponzaValue.scale = { 0.01f,0.01f,0.01f };
+		*sponza.get() = sponzaValue;
 	}
 
-	MeshDesc cubeMeshDesc = MeshDesc::GenerateCube();
-	MeshHandle cubeMeshHandle = m_rend.uploadMesh(cubeMeshDesc);
-
-	static const std::pair<std::string, TextureDesc::Format> texturePaths[] = {
-		{"../../assets/textures/default.png", TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/texture.jpg", TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/metal/metal_albedo.png", TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/metal/metal_normal.png", TextureDesc::Format::NORMAL},
-		{"../../assets/textures/bricks/bricks_albedo.png", TextureDesc::Format::DEFAULT},
-		{"../../assets/textures/bricks/bricks_normal.png", TextureDesc::Format::NORMAL},
-	};
-
-	std::vector<TextureHandle> textures;
-	for (int i = 0; i < std::size(texturePaths); ++i)
-	{
-		Texture img;
-		const TextureDesc textureDesc{ .format = texturePaths[i].second };
-		TextureUtil::LoadTextureFromFile(texturePaths[i].first.c_str(), textureDesc, img);
-		TextureHandle texHandle = m_rend.uploadTexture(img);
-		textures.push_back(texHandle);
-	}
 	const char* skyboxImagePaths[6] = {
 		"../../assets/textures/skybox/skyrender0004.png",
 		"../../assets/textures/skybox/skyrender0001.png",
@@ -59,22 +43,9 @@ void Engine::setupScene() {
 	const TextureHandle skybox = m_rend.uploadTexture(skyboxImage);
 	m_rend.setSkybox(skybox);
 
-	for (int i = 0; i < 16; ++i)
-	{
-		for (int j = 0; j < 16; ++j)
-		{
-			const RenderObject materialTestObject{
-				.meshHandle = cubeMeshHandle,
-				.textureHandle = i > 1 ? textures[2] : textures[4],
-				.normalHandle = i > 1 ? textures[3] : textures[5],
-				.translation = { 1.0f * j,-0.5f,1.0f * i},
-			};
-			auto renderObj = m_scene.AddRenderObject();
-			*renderObj = materialTestObject;
-		}
-	}
-
 	m_scene.m_camera = std::make_unique<Camera>();
+	m_scene.m_camera->m_yaw = 90.0f;
+	m_scene.m_camera->m_pos = { 0.0f, 2.0f, 0.0f };
 
 	LOG_CORE_INFO("Scene setup.");
 }
