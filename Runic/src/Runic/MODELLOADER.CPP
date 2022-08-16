@@ -85,8 +85,14 @@ std::optional<RenderObject> ModelLoader::LoadModelFromObj(const std::string& fil
 
 	const MeshHandle objectMeshHandle = m_rend->uploadMesh(newMesh);
 
+	Texture objectTexture;
+	const std::string textureName = (directory + "/" + materials[0].diffuse_texname);
+	TextureUtil::LoadTextureFromFile(textureName.c_str(), {.format = TextureDesc::Format::DEFAULT}, objectTexture);
+	const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
+
 	RenderObject newRenderObject{
 		.meshHandle = objectMeshHandle,
+		.textureHandle = objectTextureHandle,
 	};
 
 	return newRenderObject;
