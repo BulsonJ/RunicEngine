@@ -23,10 +23,11 @@ namespace Runic
 
 		TextureDesc m_desc;
 
-		void* ptr = nullptr;
+		void* ptr[6] = {nullptr};
 		int texWidth;
 		int texHeight;
 		int texChannels;
+		int texSize;
 	};
 
 	namespace TextureUtil

@@ -17,10 +17,13 @@ Texture::~Texture()
 	default:
 		break;
 	case TextureDesc::Type::TEXTURE_2D:
-		stbi_image_free(this->ptr);
+		stbi_image_free(this->ptr[0]);
 		break;
 	case TextureDesc::Type::TEXTURE_CUBEMAP:
-		stbi_image_free(this->ptr);
+		for (int i = 0; i < 6; i++)
+		{
+			stbi_image_free(this->ptr[i]);
+		}
 		break;
 	}
 }
@@ -38,7 +41,7 @@ void TextureUtil::LoadTextureFromFile(const char* file, TextureDesc textureDesc,
 	}
 
 	outImage.m_desc = textureDesc;
-	outImage.ptr = pixels;
+	outImage.ptr[0] = pixels;
 
 	LOG_CORE_INFO(file);
 
@@ -58,9 +61,6 @@ void Runic::TextureUtil::LoadCubemapFromFile(const char* file[6], TextureDesc te
 		stbi_load(file[5], &outImage.texWidth, &outImage.texHeight, &outImage.texChannels, STBI_rgb_alpha),
 	};
 
-	LOG_CORE_TRACE(sizeof(pixels[0]));
-	LOG_CORE_TRACE(sizeof(pixels));
-
 	if (!pixels[0] || !pixels[1] || !pixels[2] || !pixels[3] || !pixels[4] || !pixels[5])
 	{
 		LOG_CORE_WARN("Failed to load texture file: " + *file[0]);
@@ -74,7 +74,14 @@ void Runic::TextureUtil::LoadCubemapFromFile(const char* file[6], TextureDesc te
 	}
 
 	outImage.m_desc = textureDesc;
-	outImage.ptr = pixels;
+	outImage.ptr[0] = pixels[0];
+	outImage.ptr[1] = pixels[1];
+	outImage.ptr[2] = pixels[2];
+	outImage.ptr[3] = pixels[3];
+	outImage.ptr[4] = pixels[4];
+	outImage.ptr[5] = pixels[5];
+	outImage.texSize = outImage.texWidth * outImage.texHeight * 4;
+
 
 	//LOG_CORE_INFO(file);
 
