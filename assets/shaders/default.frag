@@ -73,7 +73,11 @@ void main(void)	{
 
 	vec3 materialDiffuse;
 	if (diffuseIndex > 0){
-		materialDiffuse = texture(bindlessTextures[(nonuniformEXT(diffuseIndex))], inTexCoords).rgb;
+		vec4 materialDiffuseTex = texture(bindlessTextures[(nonuniformEXT(diffuseIndex))], inTexCoords);
+		if (materialDiffuseTex.a == 0){
+			discard;
+		}
+		materialDiffuse = materialDiffuseTex.rgb;
 	} else {
 		materialDiffuse = (diff * materialDiffuseColour);
 	}

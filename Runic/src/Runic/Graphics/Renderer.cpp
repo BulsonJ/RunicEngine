@@ -28,6 +28,7 @@
 #include "Runic/Graphics/Internal/VulkanInit.h"
 #include "Runic/Editor.h"
 #include "Runic/Log.h"
+#include "Renderer.h"
 
 using namespace Runic;
 
@@ -56,6 +57,8 @@ void Renderer::init(Window* window)
 	initComputeCommands();
 	initSyncStructures();
 
+	m_pipelineManager = std::make_unique<PipelineManager>(m_device);
+
 	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
 	vkCreateSampler(m_device, &samplerInfo, nullptr, &m_defaultSampler);
 	m_instanceDeletionQueue.push_function([=] {
@@ -68,11 +71,7 @@ void Renderer::init(Window* window)
 
 
 	initShaders();
-
 	initShaderData();
-
-
-
 }
 
 void Renderer::initShaderData()
@@ -160,7 +159,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
 
-			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipeline);
+			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineManager->GetPipeline(currentMaterialType->pipeline));
 
 			lastMaterialType = currentMaterialType;
 		}
@@ -977,69 +976,32 @@ void Renderer::initShaders()
 		.offset = 0,
 		.size = sizeof(GPUData::PushConstants),
 	};
+	std::vector<VkPushConstantRange> pushConstants = { defaultPushConstants };
+	std::vector<VkDescriptorSetLayout> setLayouts = { m_globalSetLayout, m_sceneSetLayout };
 
-	VkDescriptorSetLayout setLayouts[] = { m_globalSetLayout, m_sceneSetLayout };
-	VkPipelineLayoutCreateInfo defaultPipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();
-	defaultPipelineLayoutInfo.setLayoutCount = 2;
-	defaultPipelineLayoutInfo.pSetLayouts = setLayouts;
-	defaultPipelineLayoutInfo.pushConstantRangeCount = 1;
-	defaultPipelineLayoutInfo.pPushConstantRanges = &defaultPushConstants;
+	VkPipelineLayout defaultPipelineLayout = m_pipelineManager->CreatePipelineLayout(setLayouts, pushConstants);
 
-	VkPipelineLayout defaultPipelineLayout;
-	vkCreatePipelineLayout(m_device, &defaultPipelineLayoutInfo, nullptr, &defaultPipelineLayout);
-
-	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
-		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(m_device, fileLoc.c_str());
-		assert(shader.has_value());
-		LOG_CORE_INFO("Shader successfully loaded" + fileLoc);
-		return shader.value();
-	};
-
-	VkShaderModule vertexShader = shaderLoadFunc((std::string)"../../assets/shaders/default.vert.spv");
-	VkShaderModule fragShader = shaderLoadFunc((std::string)"../../assets/shaders/default.frag.spv");
-
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo = VulkanInit::vertexInputStateCreateInfo();
-	VertexInputDescription vertexDescription = RenderMesh::getVertexDescription();
-	vertexInputInfo.pVertexAttributeDescriptions = vertexDescription.attributes.data();
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexDescription.attributes.size());
-	vertexInputInfo.pVertexBindingDescriptions = vertexDescription.bindings.data();
-	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexDescription.bindings.size());
-
-	// ------------------------ IMPROVE
-
-	PipelineBuild::BuildInfo buildInfo{
-		.colorBlendAttachment = VulkanInit::colorBlendAttachmentState(),
-		.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, true),
-		.pipelineLayout = defaultPipelineLayout,
-		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
-		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),
-					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragShader)},
-		.vertexInputInfo = vertexInputInfo,
-	};
-
-	VkPipeline defaultPipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);	
 	const std::string defaultMaterialName = "defaultMaterial";
-	m_materials[defaultMaterialName] = { .pipeline = defaultPipeline, .pipelineLayout = defaultPipelineLayout };
+	PipelineHandle defaultMat = m_pipelineManager->CreatePipeline({
+		.name = defaultMaterialName,
+		.pipelineLayout = defaultPipelineLayout,
+		.vertexShader = "../../assets/shaders/default.vert.spv",
+		.fragmentShader = "../../assets/shaders/default.frag.spv",
+	});
+	m_materials[defaultMaterialName] = { .pipeline = defaultMat, .pipelineLayout = defaultPipelineLayout };
 	LOG_CORE_INFO("Material created: " + defaultMaterialName);
 
-	VkShaderModule skyboxVertexShader = shaderLoadFunc((std::string)"../../assets/shaders/skybox.vert.spv");
-	VkShaderModule skyboxFragShader = shaderLoadFunc((std::string)"../../assets/shaders/skybox.frag.spv");
-
-	buildInfo.shaderStages = { 
-		{VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, skyboxVertexShader)},
-		{VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, skyboxFragShader)}
-	};
-	buildInfo.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, false);
-
-	VkPipeline skyboxPipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);
 	const std::string skyboxMaterialName = "skyboxMaterial";
-	m_materials[skyboxMaterialName] = { .pipeline = skyboxPipeline, .pipelineLayout = defaultPipelineLayout };
+	PipelineHandle skyboxMat = m_pipelineManager->CreatePipeline({
+		.name = skyboxMaterialName,
+		.pipelineLayout = defaultPipelineLayout,
+		.vertexShader = "../../assets/shaders/skybox.vert.spv",
+		.fragmentShader = "../../assets/shaders/skybox.frag.spv",
+		.enableDepthWrite = false,
+		//buildInfo.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, false);
+		});
+	m_materials[skyboxMaterialName] = { .pipeline = skyboxMat, .pipelineLayout = defaultPipelineLayout };
 	LOG_CORE_INFO("Material created: " + skyboxMaterialName);
-
-	vkDestroyShaderModule(m_device, skyboxVertexShader, nullptr);
-	vkDestroyShaderModule(m_device, skyboxFragShader, nullptr);
-	vkDestroyShaderModule(m_device, vertexShader, nullptr);
-	vkDestroyShaderModule(m_device, fragShader, nullptr);
 }
 
 void Renderer::deinit() 
@@ -1057,22 +1019,7 @@ void Renderer::deinit()
 
 	delete ResourceManager::ptr;
 
-	std::unordered_set<VkPipelineLayout> deletedPipelineLayouts;
-	std::unordered_set<VkPipeline> deletedPipelines;
-	for (auto& material : m_materials)
-	{
-		if (material.second.pipelineLayout != VK_NULL_HANDLE && deletedPipelineLayouts.count(material.second.pipelineLayout) == 0)
-		{
-			deletedPipelineLayouts.insert(material.second.pipelineLayout);
-			vkDestroyPipelineLayout(m_device, material.second.pipelineLayout, nullptr);
-		}
-		if (material.second.pipeline != VK_NULL_HANDLE && deletedPipelines.count(material.second.pipeline) == 0)
-		{
-			deletedPipelines.insert(material.second.pipeline);
-			vkDestroyPipeline(m_device, material.second.pipeline, nullptr);
-		}
-	}
-
+	m_pipelineManager->Deinit();
 	vkDestroyDescriptorPool(m_device, m_scenePool, nullptr);
 	vkDestroyDescriptorSetLayout(m_device, m_sceneSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_device, m_globalPool, nullptr);
@@ -1473,4 +1420,78 @@ VertexInputDescription RenderMesh::getVertexDescription()
 	description.attributes.push_back(colorAttribute);
 	description.attributes.push_back(uvAttribute);
 	return description;
+}
+
+void Runic::PipelineManager::Deinit()
+{
+	for (const VkPipelineLayout layout : m_pipelineLayouts)
+	{
+		vkDestroyPipelineLayout(m_device, layout, nullptr);
+	}
+	for (const PipelineInfo pipeline : m_pipelines)
+	{
+		vkDestroyPipeline(m_device, pipeline.pipeline, nullptr);
+	}
+}
+
+VkPipeline Runic::PipelineManager::GetPipeline(PipelineHandle handle)
+{
+	return m_pipelines.at(handle).pipeline;
+}
+
+VkPipelineLayout Runic::PipelineManager::CreatePipelineLayout(std::vector<VkDescriptorSetLayout> descLayouts, std::vector<VkPushConstantRange> pushConstants)
+{
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();
+	pipelineLayoutInfo.setLayoutCount = descLayouts.size();
+	pipelineLayoutInfo.pSetLayouts = descLayouts.data();
+	pipelineLayoutInfo.pushConstantRangeCount = pushConstants.size();
+	pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
+	VkPipelineLayout pipelineLayout {};
+	VK_CHECK(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
+	m_pipelineLayouts.push_back(pipelineLayout);
+	return pipelineLayout;
+}
+
+PipelineHandle Runic::PipelineManager::CreatePipeline(PipelineInfo info)
+{
+	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
+		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(m_device, fileLoc.c_str());
+		assert(shader.has_value());
+		LOG_CORE_INFO("Shader successfully loaded" + fileLoc);
+		return shader.value();
+	};
+
+	VkShaderModule vertexShader = shaderLoadFunc(info.vertexShader);
+	VkShaderModule fragShader = shaderLoadFunc(info.fragmentShader);
+
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo = VulkanInit::vertexInputStateCreateInfo();
+	VertexInputDescription vertexDescription = RenderMesh::getVertexDescription();
+	vertexInputInfo.pVertexAttributeDescriptions = vertexDescription.attributes.data();
+	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexDescription.attributes.size());
+	vertexInputInfo.pVertexBindingDescriptions = vertexDescription.bindings.data();
+	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexDescription.bindings.size());
+
+	PipelineBuild::BuildInfo buildInfo{
+		.colorBlendAttachment = VulkanInit::colorBlendAttachmentState(),
+		.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, info.enableDepthWrite),
+		.pipelineLayout = info.pipelineLayout,
+		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
+		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),
+					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragShader)},
+		.vertexInputInfo = vertexInputInfo,
+	};
+
+	info.pipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);
+	uint32_t index = (uint32_t)m_pipelines.size();
+	m_pipelines.push_back(info);
+
+	vkDestroyShaderModule(m_device, vertexShader, nullptr);
+	vkDestroyShaderModule(m_device, fragShader, nullptr);
+
+	return index;
+}
+
+void Runic::PipelineManager::RecompilePipelines()
+{
+	// TODO : Rebuild pipelines
 }

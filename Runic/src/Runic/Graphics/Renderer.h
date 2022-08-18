@@ -118,6 +118,37 @@ namespace Runic
 		VkPipelineVertexInputStateCreateFlags flags = 0;
 	};
 
+	struct PipelineInfo
+	{
+		std::string name;
+		VkPipeline pipeline{};
+		VkPipelineLayout pipelineLayout{};
+
+		std::string vertexShader;
+		std::string fragmentShader;
+
+		bool enableDepthWrite {true};
+	};
+
+	typedef uint32_t PipelineHandle;
+
+	class PipelineManager
+	{
+	public:
+		PipelineManager(VkDevice device) : m_device(device){}
+		void Deinit();
+		VkPipeline GetPipeline(PipelineHandle handle);
+		VkPipelineLayout CreatePipelineLayout(std::vector<VkDescriptorSetLayout> descLayouts,
+											  std::vector<VkPushConstantRange> pushConstants);
+		PipelineHandle CreatePipeline(PipelineInfo info);
+		void RecompilePipelines();
+	private:
+		VkDevice m_device;
+		std::string m_sourceFolder;
+		std::vector<VkPipelineLayout> m_pipelineLayouts;
+		std::vector<PipelineInfo> m_pipelines;
+	};
+
 	struct RenderMesh
 	{
 		Runic::MeshDesc meshDesc;
@@ -129,7 +160,7 @@ namespace Runic
 
 	struct MaterialType
 	{
-		VkPipeline pipeline = { VK_NULL_HANDLE };
+		PipelineHandle pipeline = { 0};
 		VkPipelineLayout pipelineLayout = { VK_NULL_HANDLE };
 	};
 
@@ -222,6 +253,8 @@ namespace Runic
 		ImageHandle m_renderImage;
 		ImageHandle m_depthImage;
 		int m_frameNumber{};
+
+		std::unique_ptr<PipelineManager> m_pipelineManager;
 
 		VkDescriptorSetLayout m_globalSetLayout;
 		VkDescriptorPool m_globalPool;

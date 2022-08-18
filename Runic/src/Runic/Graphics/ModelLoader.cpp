@@ -1,5 +1,6 @@
 #include "Runic/Graphics/ModelLoader.h"
 
+#define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
 #include "Runic/Graphics/Renderer.h"
