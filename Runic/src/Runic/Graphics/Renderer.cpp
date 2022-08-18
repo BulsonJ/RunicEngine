@@ -1454,6 +1454,24 @@ VkPipelineLayout Runic::PipelineManager::CreatePipelineLayout(std::vector<VkDesc
 
 PipelineHandle Runic::PipelineManager::CreatePipeline(PipelineInfo info)
 {
+	uint32_t index = (uint32_t)m_pipelines.size();
+	m_pipelines.push_back(info);
+	m_pipelines.back().pipeline = createPipelineInternal(info);
+	return index;
+}
+
+void Runic::PipelineManager::RecompilePipelines()
+{
+	for (PipelineInfo& info : m_pipelines)
+	{
+		vkDestroyPipeline(m_device, info.pipeline, nullptr);
+
+		info.pipeline = createPipelineInternal(info);
+	}
+}
+
+VkPipeline Runic::PipelineManager::createPipelineInternal(PipelineInfo info)
+{
 	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
 		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(m_device, fileLoc.c_str());
 		assert(shader.has_value());
@@ -1481,17 +1499,9 @@ PipelineHandle Runic::PipelineManager::CreatePipeline(PipelineInfo info)
 		.vertexInputInfo = vertexInputInfo,
 	};
 
-	info.pipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);
-	uint32_t index = (uint32_t)m_pipelines.size();
-	m_pipelines.push_back(info);
+	VkPipeline pipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);
 
 	vkDestroyShaderModule(m_device, vertexShader, nullptr);
 	vkDestroyShaderModule(m_device, fragShader, nullptr);
-
-	return index;
-}
-
-void Runic::PipelineManager::RecompilePipelines()
-{
-	// TODO : Rebuild pipelines
+	return pipeline;
 }

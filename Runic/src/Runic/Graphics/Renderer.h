@@ -143,6 +143,7 @@ namespace Runic
 		PipelineHandle CreatePipeline(PipelineInfo info);
 		void RecompilePipelines();
 	private:
+		VkPipeline createPipelineInternal(PipelineInfo info);
 		VkDevice m_device;
 		std::string m_sourceFolder;
 		std::vector<VkPipelineLayout> m_pipelineLayouts;
