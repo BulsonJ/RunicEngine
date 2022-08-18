@@ -21,6 +21,7 @@ namespace Runic
 		void DrawViewport();
 		void DrawViewportDepth();
 		void DrawSceneGraph();
+		void DrawProperties();
 		void DrawLog();
 	};
 }

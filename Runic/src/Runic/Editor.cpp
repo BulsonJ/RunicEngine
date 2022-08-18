@@ -53,15 +53,15 @@ void Editor::DrawEditor()
 			ImGui::DockBuilderAddNode(dockspace_id, dockspace_flags | ImGuiDockNodeFlags_DockSpace);
 			ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
 
-			// split the dockspace into 2 nodes -- DockBuilderSplitNode takes in the following args in the following order
-			//   window ID to split, direction, fraction (between 0 and 1), the final two setting let's us choose which id we want (which ever one we DON'T set as NULL, will be returned by the function)
-			//                                                              out_id_at_dir is the id of the node in the direction we specified earlier, out_id_at_opposite_dir is in the opposite direction
-			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.2f, nullptr, &dockspace_id);
+			auto dock_id_left = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Left, 0.1f, nullptr, &dockspace_id);
+			auto dock_id_right = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Right, 0.2f, nullptr, &dockspace_id);
+			auto dock_id_down = ImGui::DockBuilderSplitNode(dockspace_id, ImGuiDir_Down, 0.3f, nullptr, &dockspace_id);
 
 			// we now dock our windows into the docking node we made above
 			ImGui::DockBuilderDockWindow("Viewport", dockspace_id);
-			ImGui::DockBuilderDockWindow("Log", dock_id_right);
-			ImGui::DockBuilderDockWindow("SceneGraph", dock_id_right);
+			ImGui::DockBuilderDockWindow("Log", dock_id_down);
+			ImGui::DockBuilderDockWindow("SceneGraph", dock_id_left);
+			ImGui::DockBuilderDockWindow("Properties", dock_id_right);
 			ImGui::DockBuilderDockWindow("Viewport Depth", dockspace_id);
 			ImGui::DockBuilderFinish(dockspace_id);
 		}
@@ -73,33 +73,46 @@ void Editor::DrawEditor()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	DrawViewport();
+	DrawViewportDepth();
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar(2);
-	DrawViewportDepth();
+
 	DrawSceneGraph();
+	DrawProperties();
 	DrawLog();
 }
 
 void Editor::DrawViewport()
 {
 	ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-	//ImVec2 regionSize = ImGui::GetContentRegionMax();
-	//float aspectRatio = 16.0f / 9.0f;
-	//
-	//float new_height = (9.0f * regionSize.x) / 16.0f;
-	ImGui::Image(Editor::ViewportTexture, ImGui::GetContentRegionMax());
+	const ImVec2 regionSize = ImGui::GetContentRegionMax();
+	const ImVec2 aspectRatio = { 16.0f, 9.0f };
+	
+	const float newWidth = (aspectRatio.y * regionSize.x) / aspectRatio.x;
+	const ImVec2 newSize = { regionSize.x, newWidth };
+	ImGui::Image(Editor::ViewportTexture, newSize);
 	ImGui::End();
 }
 
 void Editor::DrawViewportDepth() {
 	ImGui::Begin("Viewport Depth", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoFocusOnAppearing);
-	ImGui::Image(Editor::ViewportDepthTexture, ImGui::GetContentRegionMax());
+	const ImVec2 regionSize = ImGui::GetContentRegionMax();
+	const ImVec2 aspectRatio = { 16.0f, 9.0f };
+
+	const float newWidth = (aspectRatio.y * regionSize.x) / aspectRatio.x;
+	const ImVec2 newSize = { regionSize.x, newWidth };
+	ImGui::Image(Editor::ViewportDepthTexture, newSize);
 	ImGui::End();
 }
 
 void Editor::DrawSceneGraph()
 {
 	ImGui::Begin("SceneGraph");
+	ImGui::End();
+}
+
+void Editor::DrawProperties() {
+	ImGui::Begin("Properties");
 	ImGui::DragFloat3("Light Direction", (float*)lightDirection, 0.05f, -1.0f, 1.0f);
 	ImGui::ColorEdit4("Light Color", (float*)lightColor, ImGuiColorEditFlags_DisplayRGB);
 	ImGui::ColorEdit4("Light Ambient Color", (float*)lightAmbientColor, ImGuiColorEditFlags_DisplayRGB);
