@@ -15,6 +15,9 @@ namespace PipelineBuild {
 		VkPipelineRasterizationStateCreateInfo rasterizer = {};
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = {};
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+		std::vector<VkFormat> colorAttachmentFormats = {};
+		std::optional<VkFormat> depthAttachmentFormat = {};
+		std::optional<VkFormat> stencilAttachmentFormat = {};
 	};
 
 	VkPipeline BuildPipeline(VkDevice device, const BuildInfo& pipelineBuildInfo);
