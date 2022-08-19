@@ -52,3 +52,5 @@ target_sources(tinyobjloader PRIVATE
     )
 
 target_include_directories(tinyobjloader PUBLIC tinyobjloader)
+
+add_subdirectory(entt)

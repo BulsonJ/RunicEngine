@@ -22,7 +22,7 @@ add_subdirectory(external/tinygltf)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src ${Vulkan_INCLUDE_DIRS})
 ##target_link_libraries(${PROJECT_NAME} PUBLIC glm vk-bootstrap vma imgui stb_image spdlog tinyobjloader ${Vulkan_LIBRARIES} SDL2 TracyClient)
-target_link_libraries(${PROJECT_NAME}  vk-bootstrap vma glm imgui stb_image spdlog tinyobjloader tinygltf)
+target_link_libraries(${PROJECT_NAME}  vk-bootstrap vma glm imgui stb_image spdlog tinyobjloader tinygltf EnTT)
 target_link_libraries(${PROJECT_NAME}  Vulkan::Vulkan SDL2 Tracy::TracyClient)
 
 ## Shader compiler CMAKE code thanks to VBlanco: https://vkguide.dev/
