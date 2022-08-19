@@ -12,6 +12,9 @@ target_link_libraries(SDL2 INTERFACE SDL2.lib SDL2main.lib)
 
 add_library(glm INTERFACE)
 
+set(TINYGLTF_HEADER_ONLY ON CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+
 target_include_directories(glm INTERFACE glm/glm)
 
 add_subdirectory(tracy) # target: TracyClient or alias Tracy::TracyClient

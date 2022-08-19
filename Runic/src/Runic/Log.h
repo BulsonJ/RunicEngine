@@ -21,12 +21,9 @@ private:
 #define LOG_CORE_INFO(...)  ::Log::GetCoreLogger()->info(__VA_ARGS__)
 #define LOG_CORE_WARN(...)  ::Log::GetCoreLogger()->warn(__VA_ARGS__)
 #define LOG_CORE_ERROR(...) ::Log::GetCoreLogger()->error(__VA_ARGS__)
-#endif
-
-#ifdef _RELEASE
+#else
 #define LOG_CORE_TRACE(...) 
 #define LOG_CORE_INFO(...)  
 #define LOG_CORE_WARN(...)  
 #define LOG_CORE_ERROR(...) 
 #endif
-

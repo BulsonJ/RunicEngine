@@ -3,14 +3,13 @@
 #include <Tracy.hpp>
 #include "Runic/Log.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #include <string_view>
 
 using namespace Runic;
 
-Texture::~Texture()
+void Texture::destroy()
 {
 	switch (this->m_desc.type)
 	{

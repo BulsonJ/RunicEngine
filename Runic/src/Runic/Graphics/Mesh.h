@@ -13,6 +13,7 @@ namespace Runic
 		glm::vec3 normal;
 		glm::vec3 color;
 		glm::vec2 uv;
+		glm::vec3 tangent;
 	};
 
 	struct MeshDesc

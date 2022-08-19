@@ -19,8 +19,7 @@ namespace Runic
 
 	struct Texture
 	{
-		~Texture();
-
+		void destroy();
 		TextureDesc m_desc;
 
 		void* ptr[6] = {nullptr};

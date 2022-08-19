@@ -15,6 +15,7 @@ namespace Runic
 	public:
 		ModelLoader(Renderer* rend);
 		std::optional<std::vector<RenderObject>> LoadModelFromObj(const std::string& filename);
+		std::optional<std::vector<RenderObject>> LoadModelFromGLTF(const std::string& filename);
 	private:
 		Renderer* m_rend;
 	};

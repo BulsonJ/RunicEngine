@@ -3,6 +3,16 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+// Define these only in *one* .cc file.
+#define TINYGLTF_IMPLEMENTATION
+#ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#endif
+
+// #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
+#include "tiny_gltf.h"
+
 #include "Runic/Graphics/Renderer.h"
 #include "Runic/Log.h"
 #include "Runic/Graphics/Mesh.h"
@@ -11,6 +21,7 @@
 #include <unordered_map>
 
 using namespace Runic;
+using namespace tinygltf;
 
 Runic::ModelLoader::ModelLoader(Renderer* rend) : m_rend(rend)
 {
@@ -118,5 +129,163 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 	}
 
 	LOG_CORE_TRACE("Mesh Uploaded: " + filename);
+	return newRenderObjects;
+}
+
+std::optional<std::vector<RenderObject>> Runic::ModelLoader::LoadModelFromGLTF(const std::string& filename)
+{
+	Model model;
+	TinyGLTF loader;
+	std::string err;
+	std::string warn;
+
+	bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
+	//bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, argv[1]); // for binary glTF(.glb)
+
+	if (!warn.empty())
+	{
+		printf("Warn: %s\n", warn.c_str());
+	}
+
+	if (!err.empty())
+	{
+		printf("Err: %s\n", err.c_str());
+	}
+
+	if (!ret)
+	{
+		printf("Failed to parse glTF\n");
+		return std::nullopt;
+	}
+
+
+	const std::size_t directoryPos = filename.find_last_of("/");
+	const std::string directory = filename.substr(0, directoryPos).c_str();
+
+	std::vector<TextureHandle> loadedTextures;
+	for (const tinygltf::Image& img : model.images)
+	{
+		Texture objectTexture{
+			.texWidth = img.width,
+			.texHeight = img.width,
+			.texChannels = img.component,
+		};
+		const void* pixels = reinterpret_cast<const void*>(img.image.data());
+		objectTexture.ptr[0] = (void*)pixels;
+		//objectTexture.ptr[0] = imgPath.image.data();
+		const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
+		loadedTextures.push_back(objectTextureHandle);
+		//LOG_CORE_TRACE("Texture Uploaded: " + textureName);
+	}
+
+	std::vector<RenderObject> newRenderObjects;
+	Scene scene = model.scenes[0];
+	for (const int node : scene.nodes)
+	{
+		Node currentNode = model.nodes[node];
+		Mesh currentMesh = model.meshes[currentNode.mesh];
+
+
+		std::vector<MeshDesc> meshes;
+		for (const Primitive prim : currentMesh.primitives)
+		{
+			MeshDesc mesh;
+			auto begin = prim.attributes.begin();
+			auto end = prim.attributes.end();
+			auto it = begin;
+
+			auto posAttribute = prim.attributes.find("POSITION");
+			const int vertexAttributeIndex = posAttribute->second;
+			Accessor vertexAccessor = model.accessors[vertexAttributeIndex];
+			mesh.vertices.assign(vertexAccessor.count, {});
+
+			mesh.indices.assign(model.accessors[prim.indices].count, {});
+
+			Accessor indexAccessor = model.accessors[prim.indices];
+			BufferView indexBufferView = model.bufferViews[indexAccessor.bufferView];
+			tinygltf::Buffer indexBuffer = model.buffers[indexBufferView.buffer];
+			const unsigned short* indices = reinterpret_cast<const unsigned short*>(&indexBuffer.data[indexBufferView.byteOffset + indexAccessor.byteOffset]);
+			for (int i = 0; i < indexAccessor.count; ++i)
+			{
+				mesh.indices[i] = indices[i];
+			}
+
+
+			while (it != end)
+			{
+				int index = it->second;
+
+				Accessor currentAccessor = model.accessors[index];
+				BufferView bufferView = model.bufferViews[currentAccessor.bufferView];
+				tinygltf::Buffer currentBuffer = model.buffers[bufferView.buffer];
+				
+				const float* positions = reinterpret_cast<const float*>(&currentBuffer.data[bufferView.byteOffset + currentAccessor.byteOffset]);
+				std::string attributeName = it->first;
+
+				if (attributeName == "POSITION")
+				{
+					for (int i = 0; i < currentAccessor.count; ++i)
+					{
+						const int index = i * 3;
+						mesh.vertices[i].position = glm::vec3{ positions[index] ,positions[index + 1] ,positions[index + 2] };
+
+					}
+				}
+				else if (attributeName == "NORMAL") 
+				{
+					for (int i = 0; i < currentAccessor.count; ++i)
+					{
+						const int index = i * 3;
+						mesh.vertices[i].normal = glm::vec3{ positions[index] ,positions[index + 1] ,positions[index + 2] };
+					}
+				}
+				else if (attributeName == "TEXCOORD_0")
+				{
+					for (int i = 0; i < currentAccessor.count; ++i)
+					{
+						const int index = i * 2;
+						mesh.vertices[i].uv = glm::vec2{ positions[index] ,positions[index + 1] ,};
+					}
+				}
+				else if (attributeName == "TANGENT")
+				{
+					for (int i = 0; i < currentAccessor.count; ++i)
+					{
+						const int index = i * 4;
+						mesh.vertices[i].tangent = glm::vec4{ positions[index] ,positions[index + 1] ,positions[index + 2], positions[index + 3]};
+					}
+				}
+				it++;
+			}
+
+			Material modelMat = model.materials[prim.material];
+
+
+			auto getTextureIndex = [=](const int materialImageIndex)->int {
+				if (materialImageIndex < 0)
+				{
+					return -1;
+				}
+				return model.textures[materialImageIndex].source;
+			};
+
+			const int colIndex = getTextureIndex(modelMat.pbrMetallicRoughness.baseColorTexture.index);
+			const int roughnessIndex = getTextureIndex(modelMat.pbrMetallicRoughness.metallicRoughnessTexture.index);
+			const int normIndex = getTextureIndex(modelMat.normalTexture.index);
+			const int emissiveIndex = getTextureIndex(modelMat.emissiveTexture.index);
+			RenderObject newRenderObject{
+				.meshHandle = m_rend->uploadMesh(mesh),
+				.textureHandle = colIndex >= 0 ? loadedTextures[colIndex] : 0,
+				.normalHandle = normIndex >= 0 ? loadedTextures[normIndex] : 0,
+				.roughnessHandle = roughnessIndex >= 0 ? loadedTextures[roughnessIndex] : 0,
+				.emissionHandle = emissiveIndex >= 0 ? loadedTextures[emissiveIndex] : 0,
+			};
+			newRenderObjects.push_back(newRenderObject);
+			meshes.push_back(mesh);
+		}
+	}
+
+
+
 	return newRenderObjects;
 }

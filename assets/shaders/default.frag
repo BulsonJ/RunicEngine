@@ -6,6 +6,7 @@ layout (location = 1) in vec2 inTexCoords;
 layout (location = 2) in vec3 inNormal;
 layout (location = 3) in vec3 inWorldPos;
 layout (location = 4) in flat int inDrawDataIndex;
+layout (location = 5) in mat3 inTBN;
 
 layout (location = 0) out vec4 outFragColor;
 
@@ -49,6 +50,8 @@ void main(void)	{
 	MaterialData matData = materialDataArray.objects[draw.materialIndex];
 	int diffuseIndex = matData.textureIndex.x;
 	int normalIndex = matData.textureIndex.y;
+	int roughnessIndex = matData.textureIndex.z;
+	int emissiveIndex = matData.textureIndex.w;
 
 	// pass to shader
 	vec3 sunlightDirection = lightData.direction.xyz;
@@ -58,15 +61,19 @@ void main(void)	{
 	float materialShininess = matData.shininess;
 	vec3 materialSpecular = matData.specular;
 
+	//if (roughnessIndex > 0){
+	//	materialSpecular = texture(bindlessTextures[(nonuniformEXT(roughnessIndex))], inTexCoords).rgb;
+	//}
+
 	// Diffuse
 	vec3 materialNormal;
 	if (normalIndex > 0){
 		materialNormal = texture(bindlessTextures[(nonuniformEXT(normalIndex))], inTexCoords).rgb;
+		materialNormal = materialNormal * 2.0 - 1.0;
 	} else {
 		materialNormal = inNormal;
-
 	}
-	vec3 norm = normalize(materialNormal);
+	vec3 norm = normalize(inTBN * materialNormal);
 	vec3 lightDir = normalize(sunlightDirection);
 	float diff = max(dot(norm, lightDir), 0.0);
 	vec3 diffuse = sunlightDiffuse;
@@ -90,8 +97,13 @@ void main(void)	{
 	vec3 viewDir = normalize(cameraData.cameraPos.xyz - inWorldPos);
 	vec3 reflectDir = reflect(-lightDir, norm);  
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), materialShininess);
-	vec3 specular = (materialSpecular * spec) * sunlightDiffuse;  
+	vec3 specular = sunlightDiffuse * spec * materialSpecular;  
 
-	vec3 result = ambient + diffuse + specular;
+	vec3 emission;
+	if (emissiveIndex > 0){
+		emission = texture(bindlessTextures[(nonuniformEXT(emissiveIndex))], inTexCoords).rgb;
+	}
+
+	vec3 result = ambient + diffuse + specular + emission;
 	outFragColor = vec4(result,1.0);
 }

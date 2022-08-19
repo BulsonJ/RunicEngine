@@ -20,6 +20,8 @@ namespace Runic
 		Window m_window;
 		Renderer m_rend;
 		Scene m_scene;
+
+		std::shared_ptr<RenderObject> m_obj;
 	};
 }
 

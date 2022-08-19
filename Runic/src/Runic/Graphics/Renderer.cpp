@@ -117,8 +117,8 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>
 			.shininess = 64.0f,
 			.textureIndices = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
 							object.normalHandle.has_value() ? object.normalHandle.value() : -1,
-							0,
-							0},
+							object.roughnessHandle.has_value() ? object.roughnessHandle.value() : -1,
+							object.emissionHandle.has_value() ? object.emissionHandle.value() : -1},
 		};
 	}
 
@@ -802,8 +802,6 @@ void Renderer::initImgui()
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-
-
 	//execute a gpu command to upload imgui font textures
 	immediateSubmit([&](VkCommandBuffer cmd) {
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
@@ -821,6 +819,7 @@ void Renderer::initImgui()
 void Renderer::initGraphicsCommands()
 {
 	ZoneScoped;
+
 	const VkCommandPoolCreateInfo m_graphicsCommandPoolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.pNext = nullptr,
@@ -1067,7 +1066,6 @@ void Renderer::initShaders()
 		.vertexShader = "../../assets/shaders/skybox.vert.spv",
 		.fragmentShader = "../../assets/shaders/skybox.frag.spv",
 		.enableDepthWrite = false,
-		//buildInfo.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, false);
 		});
 	m_materials[skyboxMaterialName] = { .pipeline = skyboxMat, .pipelineLayout = defaultPipelineLayout };
 	LOG_CORE_INFO("Material created: " + skyboxMaterialName);
@@ -1192,10 +1190,10 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 		return Runic::TextureHandle(0);
 	}
 
-	ImageHandle newTextureHandle = (texture.m_desc.type == TextureDesc::Type::TEXTURE_CUBEMAP ? uploadTextureInternalCubemap(texture) : uploadTextureInternal(texture));
+	const ImageHandle newTextureHandle = (texture.m_desc.type == TextureDesc::Type::TEXTURE_CUBEMAP ? uploadTextureInternalCubemap(texture) : uploadTextureInternal(texture));
 	Runic::TextureHandle bindlessHandle = m_bindlessImages.add(newTextureHandle);
 
-	VkDescriptorImageInfo bindlessImageInfo = {
+	const VkDescriptorImageInfo bindlessImageInfo = {
 		.sampler = m_defaultSampler,
 		.imageView = ResourceManager::ptr->GetImage(m_bindlessImages.get(bindlessHandle)).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1203,7 +1201,7 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		VkWriteDescriptorSet write{
+		const VkWriteDescriptorSet write{
 			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 			.dstSet = m_frame[i].globalSet,
 			.dstBinding = 3,
@@ -1226,10 +1224,12 @@ void Runic::Renderer::setSkybox(TextureHandle texture)
 
 ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 {
+	assert(image.ptr != nullptr);
+
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
 	const VkFormat image_format = {image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
 
-	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+	const BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -1319,16 +1319,6 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 
 ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 {
-	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texSize) };
-	const VkFormat image_format = { image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
-
-	BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
-			.size = imageSize * 6,
-			.usage = GFX::Buffer::Usage::NONE,
-			.transfer = BufferCreateInfo::Transfer::SRC,
-		});
-
-	//copy data to buffer
 	void* pixels[6] = {
 		image.ptr[0],
 		image.ptr[1],
@@ -1337,6 +1327,22 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 		image.ptr[4],
 		image.ptr[5],
 	};
+
+	assert(image.ptr[0] != nullptr);
+	assert(image.ptr[1] != nullptr);
+	assert(image.ptr[2] != nullptr);
+	assert(image.ptr[3] != nullptr);
+	assert(image.ptr[4] != nullptr);
+	assert(image.ptr[5] != nullptr);
+
+	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texSize) };
+	const VkFormat image_format = { image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
+
+	const BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+			.size = imageSize * 6,
+			.usage = GFX::Buffer::Usage::NONE,
+			.transfer = BufferCreateInfo::Transfer::SRC,
+		});
 
 	for (int i = 0; i < 6; ++i)
 	{
@@ -1463,12 +1469,16 @@ VertexInputDescription RenderMesh::getVertexDescription()
 		.offset = offsetof(Runic::Vertex, position),
 	};
 
+	description.attributes.push_back(positionAttribute);
+
 	const VkVertexInputAttributeDescription normalAttribute = {
 		.location = 1,
 		.binding = 0,
 		.format = NORMAL_FORMAT,
 		.offset = offsetof(Runic::Vertex, normal),
 	};
+
+	description.attributes.push_back(normalAttribute);
 
 	const VkVertexInputAttributeDescription colorAttribute = {
 		.location = 2,
@@ -1477,6 +1487,8 @@ VertexInputDescription RenderMesh::getVertexDescription()
 		.offset = offsetof(Runic::Vertex, color),
 	};
 
+	description.attributes.push_back(colorAttribute);
+
 	const VkVertexInputAttributeDescription uvAttribute = {
 		.location = 3,
 		.binding = 0,
@@ -1484,10 +1496,17 @@ VertexInputDescription RenderMesh::getVertexDescription()
 		.offset = offsetof(Runic::Vertex, uv),
 	};
 
-	description.attributes.push_back(positionAttribute);
-	description.attributes.push_back(normalAttribute);
-	description.attributes.push_back(colorAttribute);
 	description.attributes.push_back(uvAttribute);
+
+	const VkVertexInputAttributeDescription tangentAttribute = {
+		.location = 4,
+		.binding = 0,
+		.format = VK_FORMAT_R32G32B32_SFLOAT,
+		.offset = offsetof(Runic::Vertex, tangent),
+	};
+
+	description.attributes.push_back(tangentAttribute);
+
 	return description;
 }
 
