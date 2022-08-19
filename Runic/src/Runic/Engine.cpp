@@ -22,28 +22,18 @@ void Engine::init() {
 void Engine::setupScene() {
 	ModelLoader loader(&m_rend);
 
-	if (std::optional<std::vector<RenderObject>> sponzaObject = loader.LoadModelFromGLTF("../../assets/models/DamagedHelmet/DamagedHelmet.gltf"); sponzaObject.has_value())
+	if (std::optional<std::vector<Renderable>> sponzaObject = loader.LoadModelFromGLTF("../../assets/models/DamagedHelmet/DamagedHelmet.gltf"); sponzaObject.has_value())
 	{
 		for (const auto& rendObj : sponzaObject.value())
 		{
 			m_obj = m_scene.AddRenderObject();
-			RenderObject sponzaValue = rendObj;
+			Renderable sponzaValue = rendObj;
 			sponzaValue.translation = { 5.0f, 2.0f, 0.0f };
 			sponzaValue.rotation = {1.25f, -0.5f,0.0f};
 			sponzaValue.scale = { 2.0f,2.0f,2.0f };
 			*m_obj.get() = sponzaValue;
 		}
 	}
-	//if (std::optional<std::vector<RenderObject>> sponzaObject = loader.LoadModelFromGLTF("../../assets/models/Sponza/Sponza.gltf"); sponzaObject.has_value())
-	//{
-	//	for (const auto& rendObj : sponzaObject.value())
-	//	{
-	//		std::shared_ptr<RenderObject> obj = m_scene.AddRenderObject();
-	//		RenderObject sponzaValue = rendObj;
-	//		sponzaValue.scale = { 0.1f,0.1f,0.1f };
-	//		*obj.get() = sponzaValue;
-	//	}
-	//}
 
 	const char* skyboxImagePaths[6] = {
 		"../../assets/textures/skybox/skyrender0004.png",
@@ -123,7 +113,7 @@ void Engine::run()
 				}
 			}
 		}
-		std::vector<RenderObject*> renderObjects;
+		std::vector<Renderable*> renderObjects;
 		renderObjects.reserve(m_scene.m_renderObjects.size());
 		std::transform(m_scene.m_renderObjects.cbegin(), m_scene.m_renderObjects.cend(), std::back_inserter(renderObjects),
 			[](auto& ptr) { return ptr.get(); });

@@ -14,7 +14,7 @@
 
 #include "Runic/Structures/DeletionQueue.h"
 
-#include "Runic/Graphics/RenderObject.h"
+#include "Runic/Graphics/Renderable.h"
 #include "Runic/Graphics/Mesh.h"
 #include "Runic/Graphics/Texture.h"
 #include "Runic/Scene/Camera.h"
@@ -195,7 +195,7 @@ namespace Runic
 		void deinit();
 
 		// Public rendering API
-		void draw(Camera* const camera, const std::vector<RenderObject*>& renderObjects);
+		void draw(Camera* const camera, const std::vector<Renderable*>& renderObjects);
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 		void setSkybox(TextureHandle texture);
@@ -218,7 +218,7 @@ namespace Runic
 
 		void initShaderData();
 
-		void drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>& renderObjects);
+		void drawObjects(VkCommandBuffer cmd, const std::vector<Renderable*>& renderObjects);
 
 		ImageHandle uploadTextureInternal(const Runic::Texture& image);
 		ImageHandle uploadTextureInternalCubemap(const Runic::Texture& image);
@@ -272,7 +272,7 @@ namespace Runic
 		Slotmap<ImageHandle> m_bindlessImages;
 		VkSampler m_defaultSampler;
 
-		RenderObject m_skybox;
+		Renderable m_skybox;
 		MeshHandle m_skyboxMesh;
 		TextureHandle m_skyboxTexture;
 	};

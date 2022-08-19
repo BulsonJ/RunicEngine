@@ -86,11 +86,11 @@ void Renderer::initShaderData()
 	Editor::lightAmbientColor = &m_sunlight.ambientColor;
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>& renderObjects)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Renderable*>& renderObjects)
 {
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
-	const Runic::RenderObject* FIRST = renderObjects[0];
+	const Runic::Renderable* FIRST = renderObjects[0];
 
 	// fill buffers
 	// binding 0
@@ -101,7 +101,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>
 
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const Runic::RenderObject& object = *renderObjects[i];
+		const Runic::Renderable& object = *renderObjects[i];
 
 		drawDataSSBO[i].transformIndex = i;
 		drawDataSSBO[i].materialIndex = i;
@@ -150,7 +150,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>
 	const RenderMesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT + 1; ++i)
 	{
-		const Runic::RenderObject& object = i != COUNT ? *renderObjects[i] : m_skybox;
+		const Runic::Renderable& object = i != COUNT ? *renderObjects[i] : m_skybox;
 
 		// TODO : RenderObjects hold material handle for different m_materials
 		const MaterialType* currentMaterialType{ i != COUNT ? &m_materials["defaultMaterial"] : &m_materials["skyboxMaterial"]};
@@ -197,7 +197,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<RenderObject*>
 	}
 }
 
-void Renderer::draw(Camera* const camera, const std::vector<RenderObject*>& renderObjects)
+void Renderer::draw(Camera* const camera, const std::vector<Renderable*>& renderObjects)
 {
 	ZoneScoped;
 

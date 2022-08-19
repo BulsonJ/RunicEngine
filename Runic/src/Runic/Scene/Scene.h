@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "Runic/Graphics/RenderObject.h"
+#include "Runic/Graphics/Renderable.h"
 #include "Runic/Scene/Camera.h"
 
 namespace Runic
@@ -12,10 +12,10 @@ namespace Runic
 	{
 		friend class Engine;
 	public:
-		std::shared_ptr<RenderObject> AddRenderObject();
+		std::shared_ptr<Renderable> AddRenderObject();
 
 		std::unique_ptr<Camera> m_camera;
 	private:
-		std::vector<std::shared_ptr<RenderObject>> m_renderObjects;
+		std::vector<std::shared_ptr<Renderable>> m_renderObjects;
 	};
 }

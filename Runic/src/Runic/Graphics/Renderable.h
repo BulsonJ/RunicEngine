@@ -8,9 +8,10 @@ namespace Runic
 	typedef uint32_t MeshHandle;
 	typedef uint32_t TextureHandle;
 
-	struct RenderObject
+	struct Renderable
 	{
 		MeshHandle meshHandle;
+
 		std::optional<TextureHandle> textureHandle = {};
 		std::optional<TextureHandle> normalHandle = {};
 		std::optional<TextureHandle> roughnessHandle = {};

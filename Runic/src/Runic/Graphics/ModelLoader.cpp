@@ -28,7 +28,7 @@ Runic::ModelLoader::ModelLoader(Renderer* rend) : m_rend(rend)
 
 } 
 
-std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std::string& filename)
+std::optional<std::vector<Renderable>> ModelLoader::LoadModelFromObj(const std::string& filename)
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -74,7 +74,7 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 		}
 	}
 
-	std::vector<RenderObject> newRenderObjects;
+	std::vector<Renderable> newRenderObjects;
 
 	for (size_t s = 0; s < shapes.size(); s++)
 	{
@@ -120,7 +120,7 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 			}
 			index_offset += fv;
 		}
-		RenderObject newRenderObject{
+		Renderable newRenderObject{
 			.meshHandle = m_rend->uploadMesh(newMesh),
 			.textureHandle = loadedTextures[shapes[s].mesh.material_ids[0]],
 			.normalHandle = loadedNormalTextures[shapes[s].mesh.material_ids[0]],
@@ -132,7 +132,7 @@ std::optional<std::vector<RenderObject>> ModelLoader::LoadModelFromObj(const std
 	return newRenderObjects;
 }
 
-std::optional<std::vector<RenderObject>> Runic::ModelLoader::LoadModelFromGLTF(const std::string& filename)
+std::optional<std::vector<Renderable>> Runic::ModelLoader::LoadModelFromGLTF(const std::string& filename)
 {
 	Model model;
 	TinyGLTF loader;
@@ -178,7 +178,7 @@ std::optional<std::vector<RenderObject>> Runic::ModelLoader::LoadModelFromGLTF(c
 		//LOG_CORE_TRACE("Texture Uploaded: " + textureName);
 	}
 
-	std::vector<RenderObject> newRenderObjects;
+	std::vector<Renderable> newRenderObjects;
 	Scene scene = model.scenes[0];
 	for (const int node : scene.nodes)
 	{
@@ -270,7 +270,7 @@ std::optional<std::vector<RenderObject>> Runic::ModelLoader::LoadModelFromGLTF(c
 			const int roughnessIndex = getTextureIndex(modelMat.pbrMetallicRoughness.metallicRoughnessTexture.index);
 			const int normIndex = getTextureIndex(modelMat.normalTexture.index);
 			const int emissiveIndex = getTextureIndex(modelMat.emissiveTexture.index);
-			RenderObject newRenderObject{
+			Renderable newRenderObject{
 				.meshHandle = m_rend->uploadMesh(mesh),
 				.textureHandle = colIndex >= 0 ? loadedTextures[colIndex] : 0,
 				.normalHandle = normIndex >= 0 ? loadedTextures[normIndex] : 0,
