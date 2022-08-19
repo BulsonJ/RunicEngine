@@ -185,8 +185,6 @@ std::optional<std::vector<RenderObject>> Runic::ModelLoader::LoadModelFromGLTF(c
 		Node currentNode = model.nodes[node];
 		Mesh currentMesh = model.meshes[currentNode.mesh];
 
-
-		std::vector<MeshDesc> meshes;
 		for (const Primitive prim : currentMesh.primitives)
 		{
 			MeshDesc mesh;
@@ -213,9 +211,8 @@ std::optional<std::vector<RenderObject>> Runic::ModelLoader::LoadModelFromGLTF(c
 
 			while (it != end)
 			{
-				int index = it->second;
 
-				Accessor currentAccessor = model.accessors[index];
+				Accessor currentAccessor = model.accessors[it->second];
 				BufferView bufferView = model.bufferViews[currentAccessor.bufferView];
 				tinygltf::Buffer currentBuffer = model.buffers[bufferView.buffer];
 				
@@ -281,7 +278,6 @@ std::optional<std::vector<RenderObject>> Runic::ModelLoader::LoadModelFromGLTF(c
 				.emissionHandle = emissiveIndex >= 0 ? loadedTextures[emissiveIndex] : 0,
 			};
 			newRenderObjects.push_back(newRenderObject);
-			meshes.push_back(mesh);
 		}
 	}
 

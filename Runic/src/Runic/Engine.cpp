@@ -22,7 +22,6 @@ void Engine::init() {
 void Engine::setupScene() {
 	ModelLoader loader(&m_rend);
 
-	//if (std::optional<std::vector<RenderObject>> sponzaObject = loader.LoadModelFromGLTF("../../assets/models/Sponza/Sponza.gltf"); sponzaObject.has_value())
 	if (std::optional<std::vector<RenderObject>> sponzaObject = loader.LoadModelFromGLTF("../../assets/models/DamagedHelmet/DamagedHelmet.gltf"); sponzaObject.has_value())
 	{
 		for (const auto& rendObj : sponzaObject.value())
@@ -41,7 +40,7 @@ void Engine::setupScene() {
 	//	{
 	//		std::shared_ptr<RenderObject> obj = m_scene.AddRenderObject();
 	//		RenderObject sponzaValue = rendObj;
-	//		sponzaValue.scale = { 0.01f,0.01f,0.01f };
+	//		sponzaValue.scale = { 0.1f,0.1f,0.1f };
 	//		*obj.get() = sponzaValue;
 	//	}
 	//}
@@ -128,7 +127,10 @@ void Engine::run()
 		renderObjects.reserve(m_scene.m_renderObjects.size());
 		std::transform(m_scene.m_renderObjects.cbegin(), m_scene.m_renderObjects.cend(), std::back_inserter(renderObjects),
 			[](auto& ptr) { return ptr.get(); });
-		m_obj->rotation += glm::vec3{ 0.0f, 0.001f, 0.0f };
+		if (m_obj.get())
+		{
+			m_obj->rotation = m_obj->rotation + glm::vec3{ 0.0f, 0.001f, 0.0f };
+		}
 		m_rend.draw(m_scene.m_camera.get(), renderObjects);
 	}
 }
