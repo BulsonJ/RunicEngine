@@ -86,11 +86,11 @@ void Renderer::initShaderData()
 	Editor::lightAmbientColor = &m_sunlight.ambientColor;
 }
 
-void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Renderable*>& renderObjects)
+void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*>& renderObjects)
 {
 	ZoneScoped;
 	const int COUNT = static_cast<int>(renderObjects.size());
-	const Runic::Renderable* FIRST = renderObjects[0];
+	const Runic::RenderableComponent* FIRST = &renderObjects[0]->GetComponent<RenderableComponent>();
 
 	// fill buffers
 	// binding 0
@@ -101,7 +101,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Renderable*>& 
 
 	for (int i = 0; i < COUNT; ++i)
 	{
-		const Runic::Renderable& object = *renderObjects[i];
+		const Runic::RenderableComponent& object = renderObjects[i]->GetComponent<RenderableComponent>();
 
 		drawDataSSBO[i].transformIndex = i;
 		drawDataSSBO[i].materialIndex = i;
@@ -150,7 +150,11 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Renderable*>& 
 	const RenderMesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT + 1; ++i)
 	{
-		const Runic::Renderable& object = i != COUNT ? *renderObjects[i] : m_skybox;
+		if (i < COUNT && !renderObjects[i]->HasComponent<RenderableComponent>())
+		{
+			return;
+		}
+		const Runic::RenderableComponent& object = i != COUNT ? renderObjects[i]->GetComponent<RenderableComponent>() : m_skybox;
 
 		// TODO : RenderObjects hold material handle for different m_materials
 		const MaterialType* currentMaterialType{ i != COUNT ? &m_materials["defaultMaterial"] : &m_materials["skyboxMaterial"]};
@@ -197,11 +201,9 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Renderable*>& 
 	}
 }
 
-void Renderer::draw(Camera* const camera, const std::vector<Renderable*>& renderObjects)
+void Renderer::draw(Camera* const camera)
 {
 	ZoneScoped;
-
-	assert(renderObjects.size() < MAX_OBJECTS);
 
 	m_currentCamera = camera;
 
@@ -340,7 +342,7 @@ void Renderer::draw(Camera* const camera, const std::vector<Renderable*>& render
 	};
 	vkCmdBeginRendering(cmd, &renderInfo);
 
-	drawObjects(cmd, renderObjects);
+	drawObjects(cmd, m_entities);
 
 	vkCmdEndRendering(cmd);
 
@@ -436,6 +438,16 @@ void Renderer::draw(Camera* const camera, const std::vector<Renderable*>& render
 	vkQueuePresentKHR(m_graphics.queue, &presentInfo);
 	FrameMark;
 	m_frameNumber++;
+}
+
+void Runic::Renderer::GiveRenderables(const std::vector<std::shared_ptr<Runic::Entity>>& entities)
+{
+	for (const auto& entity : entities){
+		if (entity->HasComponent<RenderableComponent>())
+		{	
+			m_entities.push_back(entity.get());
+		}
+	}
 }
 
 void Renderer::initVulkan() {

@@ -14,9 +14,10 @@
 
 #include "Runic/Structures/DeletionQueue.h"
 
-#include "Runic/Graphics/Renderable.h"
 #include "Runic/Graphics/Mesh.h"
 #include "Runic/Graphics/Texture.h"
+#include "Runic/Scene/Entity.h"
+#include "Runic/Scene/Components/RenderableComponent.h"
 #include "Runic/Scene/Camera.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
@@ -195,7 +196,8 @@ namespace Runic
 		void deinit();
 
 		// Public rendering API
-		void draw(Camera* const camera, const std::vector<Renderable*>& renderObjects);
+		void draw(Camera* const camera);
+		void GiveRenderables(const std::vector<std::shared_ptr<Runic::Entity>>& entities);
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 		void setSkybox(TextureHandle texture);
@@ -218,7 +220,7 @@ namespace Runic
 
 		void initShaderData();
 
-		void drawObjects(VkCommandBuffer cmd, const std::vector<Renderable*>& renderObjects);
+		void drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*>& renderObjects);
 
 		ImageHandle uploadTextureInternal(const Runic::Texture& image);
 		ImageHandle uploadTextureInternalCubemap(const Runic::Texture& image);
@@ -272,8 +274,10 @@ namespace Runic
 		Slotmap<ImageHandle> m_bindlessImages;
 		VkSampler m_defaultSampler;
 
-		Renderable m_skybox;
+		RenderableComponent m_skybox;
 		MeshHandle m_skyboxMesh;
 		TextureHandle m_skyboxTexture;
+
+		std::vector<Runic::Entity*> m_entities;
 	};
 }

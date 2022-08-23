@@ -28,7 +28,7 @@ Runic::ModelLoader::ModelLoader(Renderer* rend) : m_rend(rend)
 
 } 
 
-std::optional<std::vector<Renderable>> ModelLoader::LoadModelFromObj(const std::string& filename)
+std::optional<std::vector<RenderableComponent>> ModelLoader::LoadModelFromObj(const std::string& filename)
 {
 	tinyobj::attrib_t attrib;
 	std::vector<tinyobj::shape_t> shapes;
@@ -74,7 +74,7 @@ std::optional<std::vector<Renderable>> ModelLoader::LoadModelFromObj(const std::
 		}
 	}
 
-	std::vector<Renderable> newRenderObjects;
+	std::vector<RenderableComponent> newRenderObjects;
 
 	for (size_t s = 0; s < shapes.size(); s++)
 	{
@@ -120,11 +120,10 @@ std::optional<std::vector<Renderable>> ModelLoader::LoadModelFromObj(const std::
 			}
 			index_offset += fv;
 		}
-		Renderable newRenderObject{
-			.meshHandle = m_rend->uploadMesh(newMesh),
-			.textureHandle = loadedTextures[shapes[s].mesh.material_ids[0]],
-			.normalHandle = loadedNormalTextures[shapes[s].mesh.material_ids[0]],
-		};
+		RenderableComponent newRenderObject;
+		newRenderObject.meshHandle = m_rend->uploadMesh(newMesh);
+		newRenderObject.textureHandle = loadedTextures[shapes[s].mesh.material_ids[0]];
+		newRenderObject.normalHandle = loadedNormalTextures[shapes[s].mesh.material_ids[0]];
 		newRenderObjects.push_back(newRenderObject);
 	}
 
@@ -132,7 +131,7 @@ std::optional<std::vector<Renderable>> ModelLoader::LoadModelFromObj(const std::
 	return newRenderObjects;
 }
 
-std::optional<std::vector<Renderable>> Runic::ModelLoader::LoadModelFromGLTF(const std::string& filename)
+std::optional<std::vector<RenderableComponent>> Runic::ModelLoader::LoadModelFromGLTF(const std::string& filename)
 {
 	Model model;
 	TinyGLTF loader;
@@ -178,8 +177,8 @@ std::optional<std::vector<Renderable>> Runic::ModelLoader::LoadModelFromGLTF(con
 		//LOG_CORE_TRACE("Texture Uploaded: " + textureName);
 	}
 
-	std::vector<Renderable> newRenderObjects;
-	Scene scene = model.scenes[0];
+	std::vector<RenderableComponent> newRenderObjects;
+	tinygltf::Scene scene = model.scenes[0];
 	for (const int node : scene.nodes)
 	{
 		Node currentNode = model.nodes[node];
@@ -270,13 +269,12 @@ std::optional<std::vector<Renderable>> Runic::ModelLoader::LoadModelFromGLTF(con
 			const int roughnessIndex = getTextureIndex(modelMat.pbrMetallicRoughness.metallicRoughnessTexture.index);
 			const int normIndex = getTextureIndex(modelMat.normalTexture.index);
 			const int emissiveIndex = getTextureIndex(modelMat.emissiveTexture.index);
-			Renderable newRenderObject{
-				.meshHandle = m_rend->uploadMesh(mesh),
-				.textureHandle = colIndex >= 0 ? loadedTextures[colIndex] : 0,
-				.normalHandle = normIndex >= 0 ? loadedTextures[normIndex] : 0,
-				.roughnessHandle = roughnessIndex >= 0 ? loadedTextures[roughnessIndex] : 0,
-				.emissionHandle = emissiveIndex >= 0 ? loadedTextures[emissiveIndex] : 0,
-			};
+			RenderableComponent newRenderObject;
+			newRenderObject.meshHandle = m_rend->uploadMesh(mesh);
+			newRenderObject.textureHandle = colIndex >= 0 ? loadedTextures[colIndex] : 0;
+			newRenderObject.normalHandle = normIndex >= 0 ? loadedTextures[normIndex] : 0;
+			newRenderObject.roughnessHandle = roughnessIndex >= 0 ? loadedTextures[roughnessIndex] : 0;
+			newRenderObject.emissionHandle = emissiveIndex >= 0 ? loadedTextures[emissiveIndex] : 0;
 			newRenderObjects.push_back(newRenderObject);
 		}
 	}

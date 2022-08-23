@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "Runic/Graphics/Renderable.h"
+#include "Runic/Scene/Components/RenderableComponent.h"
 
 namespace Runic
 {
@@ -14,8 +14,8 @@ namespace Runic
 	{
 	public:
 		ModelLoader(Renderer* rend);
-		std::optional<std::vector<Renderable>> LoadModelFromObj(const std::string& filename);
-		std::optional<std::vector<Renderable>> LoadModelFromGLTF(const std::string& filename);
+		std::optional<std::vector<RenderableComponent>> LoadModelFromObj(const std::string& filename);
+		std::optional<std::vector<RenderableComponent>> LoadModelFromGLTF(const std::string& filename);
 	private:
 		Renderer* m_rend;
 	};

@@ -22,16 +22,16 @@ void Engine::init() {
 void Engine::setupScene() {
 	ModelLoader loader(&m_rend);
 
-	if (std::optional<std::vector<Renderable>> sponzaObject = loader.LoadModelFromGLTF("../../assets/models/DamagedHelmet/DamagedHelmet.gltf"); sponzaObject.has_value())
+	if (std::optional<std::vector<RenderableComponent>> sponzaObject = loader.LoadModelFromGLTF("../../assets/models/DamagedHelmet/DamagedHelmet.gltf"); sponzaObject.has_value())
 	{
 		for (const auto& rendObj : sponzaObject.value())
 		{
-			m_obj = m_scene.AddRenderObject();
-			Renderable sponzaValue = rendObj;
-			sponzaValue.translation = { 5.0f, 2.0f, 0.0f };
-			sponzaValue.rotation = {1.25f, -0.5f,0.0f};
-			sponzaValue.scale = { 2.0f,2.0f,2.0f };
-			*m_obj.get() = sponzaValue;
+			m_obj = m_scene.CreateEntity();
+			RenderableComponent* sponzaValue = &m_obj->AddComponent<RenderableComponent>();
+			*sponzaValue = rendObj;
+			sponzaValue->translation = { 5.0f, 2.0f, 0.0f };
+			sponzaValue->rotation = {1.25f, -0.5f,0.0f};
+			sponzaValue->scale = { 2.0f,2.0f,2.0f };
 		}
 	}
 
@@ -52,6 +52,8 @@ void Engine::setupScene() {
 	m_scene.m_camera = std::make_unique<Camera>();
 	m_scene.m_camera->m_yaw = -90.0f;
 	m_scene.m_camera->m_pos = { 0.0f, 2.0f, 0.0f };
+
+	m_rend.GiveRenderables(m_scene.m_entities);
 
 	LOG_CORE_INFO("Scene setup.");
 }
@@ -113,15 +115,11 @@ void Engine::run()
 				}
 			}
 		}
-		std::vector<Renderable*> renderObjects;
-		renderObjects.reserve(m_scene.m_renderObjects.size());
-		std::transform(m_scene.m_renderObjects.cbegin(), m_scene.m_renderObjects.cend(), std::back_inserter(renderObjects),
-			[](auto& ptr) { return ptr.get(); });
 		if (m_obj.get())
 		{
-			m_obj->rotation = m_obj->rotation + glm::vec3{ 0.0f, 0.001f, 0.0f };
+			m_obj->GetComponent<RenderableComponent>().rotation = m_obj->GetComponent<RenderableComponent>().rotation + glm::vec3{0.0f, 0.001f, 0.0f};
 		}
-		m_rend.draw(m_scene.m_camera.get(), renderObjects);
+		m_rend.draw(m_scene.m_camera.get());
 	}
 }
 

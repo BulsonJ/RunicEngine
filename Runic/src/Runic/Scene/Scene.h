@@ -6,7 +6,6 @@
 #include <entt/entt.hpp>
 #include <entt/entity/registry.hpp>
 
-#include "Runic/Graphics/Renderable.h"
 #include "Runic/Scene/Camera.h"
 
 
@@ -17,17 +16,16 @@ namespace Runic
 	class Scene
 	{
 		friend class Engine;
+		friend class Entity;
 	public:
 		Scene();
 		~Scene();
 
-		std::shared_ptr<Renderable> AddRenderObject();
-
 		std::unique_ptr<Camera> m_camera;
-
-		Entity CreateEntity();
+		std::vector<std::shared_ptr<Entity>> m_entities;
+		std::shared_ptr<Entity> CreateEntity();
 	private:
-		std::vector<std::shared_ptr<Renderable>> m_renderObjects;
+
 		entt::registry m_registry;
 	};
 }

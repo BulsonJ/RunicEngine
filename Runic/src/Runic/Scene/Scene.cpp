@@ -13,16 +13,11 @@ Scene::~Scene()
 
 }
 
-Entity Scene::CreateEntity()
+std::shared_ptr<Entity> Scene::CreateEntity()
 {
-	return { m_registry.create(), this};
-}
-
-std::shared_ptr<Renderable> Scene::AddRenderObject()
-{
-	std::shared_ptr<Renderable> newObj = std::make_shared<Renderable>();
-	m_renderObjects.push_back(newObj);
-	return newObj;
+	std::shared_ptr<Entity> ent = std::make_shared<Entity>(m_registry.create(), this);
+	m_entities.push_back(ent);
+	return ent;
 }
 
 

@@ -21,7 +21,7 @@ namespace Runic
 		Renderer m_rend;
 		Scene m_scene;
 
-		std::shared_ptr<Renderable> m_obj;
+		std::shared_ptr<Entity> m_obj;
 	};
 }
 
