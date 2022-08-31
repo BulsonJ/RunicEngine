@@ -30,6 +30,8 @@
 #include "Runic/Log.h"
 #include "Renderer.h"
 
+#include "Runic/Scene/Components/TransformComponent.h"
+
 using namespace Runic;
 
 #define VK_CHECK(x)                                                 \
@@ -101,18 +103,24 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 
 	for (int i = 0; i < COUNT; ++i)
 	{
+		int bufferPos = i + 1;
 		const Runic::RenderableComponent& object = renderObjects[i]->GetComponent<RenderableComponent>();
 
-		drawDataSSBO[i].transformIndex = i;
-		drawDataSSBO[i].materialIndex = i;
+		if (renderObjects[i]->HasComponent<TransformComponent>())
+		{
+			const Runic::TransformComponent& transform = renderObjects[i]->GetComponent<TransformComponent>();
+			const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, transform.translation)
+				* glm::toMat4(glm::quat(transform.rotation))
+				* glm::scale(glm::mat4{ 1.0 }, transform.scale);
+			objectSSBO[bufferPos].modelMatrix = modelMatrix;
+			objectSSBO[bufferPos].normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
 
-		const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, object.translation)
-			* glm::toMat4(glm::quat(object.rotation))
-			* glm::scale(glm::mat4{ 1.0 }, object.scale);
-		objectSSBO[i].modelMatrix = modelMatrix;
-		objectSSBO[i].normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
+			drawDataSSBO[i].transformIndex = bufferPos;
+		}
 
-		materialSSBO[i] = GPUData::Material{
+		drawDataSSBO[i].materialIndex = bufferPos;
+
+		materialSSBO[bufferPos] = GPUData::Material{
 			.specular = {0.4f,0.4,0.4f},
 			.shininess = 64.0f,
 			.textureIndices = {object.textureHandle.has_value() ? object.textureHandle.value() : -1,
@@ -122,9 +130,9 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		};
 	}
 
-	int skyboxCount = COUNT;
-	drawDataSSBO[skyboxCount].transformIndex = skyboxCount;
-	drawDataSSBO[skyboxCount].materialIndex = skyboxCount;
+	int skyboxCount = COUNT + 1;
+	drawDataSSBO[COUNT].transformIndex = skyboxCount;
+	drawDataSSBO[COUNT].materialIndex = skyboxCount;
 
 	materialSSBO[skyboxCount] = GPUData::Material{
 			.textureIndices = {m_skybox.textureHandle.value(),

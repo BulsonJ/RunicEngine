@@ -6,6 +6,7 @@
 
 #include "Runic/Log.h"
 #include "Runic/Graphics/ModelLoader.h"
+#include "Runic/Scene/Components/TransformComponent.h"
 
 using namespace Runic;
 
@@ -29,9 +30,11 @@ void Engine::setupScene() {
 			m_obj = m_scene.CreateEntity();
 			RenderableComponent* sponzaValue = &m_obj->AddComponent<RenderableComponent>();
 			*sponzaValue = rendObj;
-			sponzaValue->translation = { 5.0f, 2.0f, 0.0f };
-			sponzaValue->rotation = {1.25f, -0.5f,0.0f};
-			sponzaValue->scale = { 2.0f,2.0f,2.0f };
+
+			TransformComponent* transform = &m_obj->AddComponent<TransformComponent>();
+			transform->translation = { 5.0f, 2.0f, 0.0f };
+			transform->rotation = {1.25f, -0.5f,0.0f};
+			transform->scale = { 2.0f,2.0f,2.0f };
 		}
 	}
 
@@ -115,9 +118,9 @@ void Engine::run()
 				}
 			}
 		}
-		if (m_obj.get())
+		if (m_obj.get() && m_obj->HasComponent<TransformComponent>())
 		{
-			m_obj->GetComponent<RenderableComponent>().rotation = m_obj->GetComponent<RenderableComponent>().rotation + glm::vec3{0.0f, 0.001f, 0.0f};
+			m_obj->GetComponent<TransformComponent>().rotation = m_obj->GetComponent<TransformComponent>().rotation + glm::vec3{0.0f, 0.001f, 0.0f};
 		}
 		m_rend.draw(m_scene.m_camera.get());
 	}
