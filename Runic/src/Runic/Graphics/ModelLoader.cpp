@@ -19,6 +19,7 @@
 #include "Runic/Graphics/Texture.h"
 
 #include <unordered_map>
+#include <gtc/type_ptr.hpp>
 
 using namespace Runic;
 using namespace tinygltf;
@@ -223,7 +224,7 @@ std::optional<std::vector<RenderableComponent>> Runic::ModelLoader::LoadModelFro
 					for (int i = 0; i < currentAccessor.count; ++i)
 					{
 						const int index = i * 3;
-						mesh.vertices[i].position = glm::vec3{ positions[index] ,positions[index + 1] ,positions[index + 2] };
+						mesh.vertices[i].position = glm::make_vec3(&positions[index]);
 
 					}
 				}
@@ -232,7 +233,7 @@ std::optional<std::vector<RenderableComponent>> Runic::ModelLoader::LoadModelFro
 					for (int i = 0; i < currentAccessor.count; ++i)
 					{
 						const int index = i * 3;
-						mesh.vertices[i].normal = glm::vec3{ positions[index] ,positions[index + 1] ,positions[index + 2] };
+						mesh.vertices[i].normal = glm::make_vec3(&positions[index]);
 					}
 				}
 				else if (attributeName == "TEXCOORD_0")
@@ -240,7 +241,7 @@ std::optional<std::vector<RenderableComponent>> Runic::ModelLoader::LoadModelFro
 					for (int i = 0; i < currentAccessor.count; ++i)
 					{
 						const int index = i * 2;
-						mesh.vertices[i].uv = glm::vec2{ positions[index] ,positions[index + 1] ,};
+						mesh.vertices[i].uv = glm::make_vec2(&positions[index]);
 					}
 				}
 				else if (attributeName == "TANGENT")
@@ -248,7 +249,7 @@ std::optional<std::vector<RenderableComponent>> Runic::ModelLoader::LoadModelFro
 					for (int i = 0; i < currentAccessor.count; ++i)
 					{
 						const int index = i * 4;
-						mesh.vertices[i].tangent = glm::vec4{ positions[index] ,positions[index + 1] ,positions[index + 2], positions[index + 3]};
+						mesh.vertices[i].tangent = glm::make_vec4(&positions[index]);
 					}
 				}
 				it++;
