@@ -109,9 +109,8 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		if (renderObjects[i]->HasComponent<TransformComponent>())
 		{
 			const Runic::TransformComponent& transform = renderObjects[i]->GetComponent<TransformComponent>();
-			const glm::mat4 modelMatrix = glm::translate(glm::mat4{ 1.0 }, transform.translation)
-				* glm::toMat4(glm::quat(transform.rotation))
-				* glm::scale(glm::mat4{ 1.0 }, transform.scale);
+
+			const glm::mat4 modelMatrix = transform.BuildMatrix();
 			objectSSBO[bufferPos].modelMatrix = modelMatrix;
 			objectSSBO[bufferPos].normalMatrix = glm::mat3(glm::transpose(glm::inverse(modelMatrix)));
 
