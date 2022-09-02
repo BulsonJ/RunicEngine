@@ -33,9 +33,10 @@ layout(std140,set = 1, binding = 0) uniform  CameraBuffer{
 } cameraData;
 
 layout(std140,set = 1, binding = 1) uniform  DirLightBuffer{
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
 	vec4 direction;
-	vec4 color;
-	vec4 ambientColor;
 } lightData;
 
 
@@ -55,8 +56,8 @@ void main(void)	{
 
 	// pass to shader
 	vec3 sunlightDirection = lightData.direction.xyz;
-	vec3 sunlightDiffuse = lightData.color.xyz;
-	vec3 sunlightAmbient = lightData.ambientColor.xyz;
+	vec3 sunlightDiffuse = lightData.diffuse.rgb;
+	vec3 sunlightAmbient = lightData.ambient.rgb;
 	vec3 materialDiffuseColour = matData.diffuse.rgb;
 	float materialShininess = matData.shininess;
 	vec3 materialSpecular = matData.specular;
@@ -97,7 +98,7 @@ void main(void)	{
 	vec3 viewDir = normalize(cameraData.cameraPos.xyz - inWorldPos);
 	vec3 reflectDir = reflect(-lightDir, norm);  
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), materialShininess);
-	vec3 specular = sunlightDiffuse * spec * materialSpecular;  
+	vec3 specular = lightData.specular.rgb * spec * materialSpecular;  
 
 	vec3 emission;
 	if (emissiveIndex > 0){
