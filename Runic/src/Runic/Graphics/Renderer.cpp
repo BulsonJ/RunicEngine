@@ -82,10 +82,6 @@ void Renderer::initShaderData()
 
 	m_skybox.meshHandle = uploadMesh(MeshDesc::GenerateSkyboxCube());
 	m_skybox.textureHandle = 0;
-
-	Editor::lightDirection = &m_sunlight.direction;
-	Editor::lightColor = &m_sunlight.color;
-	Editor::lightAmbientColor = &m_sunlight.ambientColor;
 }
 
 void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*>& renderObjects)
@@ -151,7 +147,20 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 	cameraSSBO->pos = {m_currentCamera->GetPosition(), 0.0f};
 		//slot 1 - directionalLight
 	GPUData::DirectionalLight* dirLightSSBO = (GPUData::DirectionalLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().dirLightBuffer).ptr;
-	*dirLightSSBO = m_sunlight;
+	if (m_entities_with_lights.count(LightComponent::LightType::Directional) > 0)
+	{
+		const LightComponent* dirLight = &m_entities_with_lights[LightComponent::LightType::Directional][0]->GetComponent<LightComponent>();
+		dirLightSSBO->ambient = { dirLight->ambient, 0.0f };
+		dirLightSSBO->diffuse = { dirLight->diffuse, 0.0f };
+		dirLightSSBO->specular = { dirLight->specular, 0.0f };
+		dirLightSSBO->direction = { dirLight->direction, 0.0f };
+	}
+	else
+	{
+		LOG_CORE_WARN("No directional light passed to renderer.");
+		*dirLightSSBO = GPUData::DirectionalLight();
+	}
+
 
 	const MaterialType* lastMaterialType = nullptr;
 	const RenderMesh* lastMesh = nullptr;
@@ -453,6 +462,11 @@ void Runic::Renderer::GiveRenderables(const std::vector<std::shared_ptr<Runic::E
 		if (entity->HasComponent<RenderableComponent>())
 		{	
 			m_entities.push_back(entity.get());
+		}
+
+		if (entity->HasComponent<LightComponent>())
+		{
+			m_entities_with_lights[entity->GetComponent<LightComponent>().lightType].push_back(entity.get());
 		}
 	}
 }

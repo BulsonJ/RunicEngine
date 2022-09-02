@@ -18,6 +18,7 @@
 #include "Runic/Graphics/Texture.h"
 #include "Runic/Scene/Entity.h"
 #include "Runic/Scene/Components/RenderableComponent.h"
+#include "Runic/Scene/Components/LightComponent.h"
 #include "Runic/Scene/Camera.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
@@ -100,9 +101,18 @@ namespace Runic
 
 		struct DirectionalLight
 		{
-			glm::vec4 direction = { -0.15f, 0.1f, 0.4f, 1.0f };
-			glm::vec4 color = { 1.0f,1.0f,1.0f,1.0f };
-			glm::vec4 ambientColor = { 0.7f, 0.7f, 0.7f, 1.0f };
+			glm::vec4 ambient = { 0.0f, 0.0f, 0.0f, 0.0f };
+			glm::vec4 diffuse = { 0.0f,0.0f,0.0f,0.0f };
+			glm::vec4 specular = { 0.0f, 0.0f, 0.0f, 1.0f };
+			glm::vec4 direction = { 0.0f, 0.0f, 0.0f, 1.0f };
+		};
+
+		struct PointLight
+		{
+			glm::vec4 ambient = { 0.7f, 0.7f, 0.7f, 1.0f };
+			glm::vec4 diffuse = { 1.0f,1.0f,1.0f,1.0f };
+			glm::vec4 specular = { 0.7f, 0.7f, 0.7f, 1.0f };
+			glm::vec4 position = { 0.0f,0.0f,0.0f, 1.0f };
 		};
 
 		struct Camera
@@ -267,7 +277,6 @@ namespace Runic
 		VkDescriptorPool m_scenePool;
 
 		Camera* m_currentCamera;
-		GPUData::DirectionalLight m_sunlight;
 
 		Slotmap<RenderMesh> m_meshes;
 		std::unordered_map<std::string, MaterialType> m_materials;
@@ -279,5 +288,6 @@ namespace Runic
 		TextureHandle m_skyboxTexture;
 
 		std::vector<Runic::Entity*> m_entities;
+		std::map<LightComponent::LightType, std::vector<Runic::Entity*>> m_entities_with_lights;
 	};
 }

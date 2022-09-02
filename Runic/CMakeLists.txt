@@ -10,9 +10,17 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.cpp")
 file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "src/*.h")
 file(GLOB_RECURSE RNC_FILES CONFIGURE_DEPENDS "*.h")
 
-add_executable(${PROJECT_NAME} ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES} main.cpp)
+## find all the shader files under the shaders folder
+file(GLOB_RECURSE GLSL_SOURCE_FILES
+    "${PROJECT_SOURCE_DIR}/assets/shaders/*.frag"
+    "${PROJECT_SOURCE_DIR}/assets/shaders/*.vert"
+    "${PROJECT_SOURCE_DIR}/assets/shaders/*.comp"
+    )
+
+add_executable(${PROJECT_NAME} ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES}  ${GLSL_SOURCE_FILES} main.cpp)
 target_compile_definitions(${PROJECT_NAME} PRIVATE RNC_PLATFORM_WINDOWS RNC_BUILD_DLL)
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${SRC_FILES} ${HEADER_FILES} ${RNC_FILES} main.cpp)
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${GLSL_SOURCE_FILES})
 
 # add external libraries
 add_subdirectory(external)
@@ -27,13 +35,6 @@ target_link_libraries(${PROJECT_NAME}  Vulkan::Vulkan SDL2 Tracy::TracyClient)
 
 ## Shader compiler CMAKE code thanks to VBlanco: https://vkguide.dev/
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
-
-## find all the shader files under the shaders folder
-file(GLOB_RECURSE GLSL_SOURCE_FILES
-    "${PROJECT_SOURCE_DIR}/assets/shaders/*.frag"
-    "${PROJECT_SOURCE_DIR}/assets/shaders/*.vert"
-    "${PROJECT_SOURCE_DIR}/assets/shaders/*.comp"
-    )
 
 ## iterate each shader
 foreach(GLSL ${GLSL_SOURCE_FILES})

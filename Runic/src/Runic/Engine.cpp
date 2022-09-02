@@ -52,6 +52,13 @@ void Engine::setupScene() {
 	m_rend.setSkybox(skybox);
 	skyboxImage.destroy();
 
+	std::shared_ptr<Entity> sun = m_scene.CreateEntity();
+	LightComponent* sunlight = &sun->AddComponent<LightComponent>();
+	sunlight->lightType = LightComponent::LightType::Directional;
+	sunlight->direction = { -0.15f, 0.1f, 0.4f };
+	sunlight->diffuse = { 1.0f,1.0f,1.0f};
+	sunlight->ambient = { 0.7f, 0.7f, 0.7f};
+
 	m_scene.m_camera = std::make_unique<Camera>();
 	m_scene.m_camera->m_yaw = -90.0f;
 	m_scene.m_camera->m_pos = { 0.0f, 2.0f, 0.0f };

@@ -113,9 +113,9 @@ void Editor::DrawSceneGraph()
 
 void Editor::DrawProperties() {
 	ImGui::Begin("Properties");
-	ImGui::DragFloat3("Light Direction", (float*)lightDirection, 0.05f, -1.0f, 1.0f);
-	ImGui::ColorEdit4("Light Color", (float*)lightColor, ImGuiColorEditFlags_DisplayRGB);
-	ImGui::ColorEdit4("Light Ambient Color", (float*)lightAmbientColor, ImGuiColorEditFlags_DisplayRGB);
+	//ImGui::DragFloat3("Light Direction", (float*)lightDirection, 0.05f, -1.0f, 1.0f);
+	//ImGui::ColorEdit4("Light Color", (float*)lightColor, ImGuiColorEditFlags_DisplayRGB);
+	//ImGui::ColorEdit4("Light Ambient Color", (float*)lightAmbientColor, ImGuiColorEditFlags_DisplayRGB);
 	ImGui::End();
 }
 
