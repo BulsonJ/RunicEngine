@@ -24,10 +24,14 @@
 constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 1024;
 constexpr unsigned int MAX_TEXTURES = 128;
+constexpr unsigned int MAX_POINT_LIGHTS = 4U;
+
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
 constexpr VkFormat DEFAULT_FORMAT = { VK_FORMAT_R8G8B8A8_SRGB };
 constexpr VkFormat NORMAL_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM };
 constexpr VkFormat DEPTH_FORMAT = { VK_FORMAT_D32_SFLOAT };
+
+
 
 struct SDL_Window;
 
@@ -113,6 +117,11 @@ namespace Runic
 			glm::vec4 diffuse = { 1.0f,1.0f,1.0f,1.0f };
 			glm::vec4 specular = { 0.7f, 0.7f, 0.7f, 1.0f };
 			glm::vec4 position = { 0.0f,0.0f,0.0f, 1.0f };
+
+			float constant;
+			float linear;
+			float quadratic;
+			float padding;
 		};
 
 		struct Camera
@@ -197,6 +206,7 @@ namespace Runic
 		VkDescriptorSet sceneSet;
 		BufferHandle cameraBuffer;
 		BufferHandle dirLightBuffer;
+		BufferHandle pointLightBuffer;
 	};
 
 	class Renderer

@@ -160,6 +160,25 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		LOG_CORE_WARN("No directional light passed to renderer.");
 		*dirLightSSBO = GPUData::DirectionalLight();
 	}
+	GPUData::PointLight* pointLightSSBO = (GPUData::PointLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().pointLightBuffer).ptr;
+	if (m_entities_with_lights.count(LightComponent::LightType::Point) > 0)
+	{
+		if (int numberOfPointLights = m_entities_with_lights[LightComponent::LightType::Point].size(); numberOfPointLights > 0)
+		{
+			for (int i = 0; i < numberOfPointLights; ++i)
+			{
+				const LightComponent* pointLight = &m_entities_with_lights[LightComponent::LightType::Point][i]->GetComponent<LightComponent>();
+				pointLightSSBO[i].ambient = { pointLight->ambient, 0.0f };
+				pointLightSSBO[i].diffuse = { pointLight->diffuse, 0.0f };
+				pointLightSSBO[i].specular = { pointLight->specular, 0.0f };
+				pointLightSSBO[i].position = { pointLight->position, 0.0f };
+
+				pointLightSSBO[i].constant = pointLight->constant;
+				pointLightSSBO[i].linear =  pointLight->linear;
+				pointLightSSBO[i].quadratic = pointLight->quadratic;
+			}
+		}
+	}
 
 
 	const MaterialType* lastMaterialType = nullptr;
@@ -970,6 +989,7 @@ void Renderer::initShaders()
 
 		m_frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::Camera), .usage = GFX::Buffer::Usage::UNIFORM });
 		m_frame[i].dirLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::DirectionalLight), .usage = GFX::Buffer::Usage::UNIFORM });
+		m_frame[i].pointLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::PointLight) * MAX_POINT_LIGHTS, .usage = GFX::Buffer::Usage::STORAGE });
 	}
 	// create descriptor layout
 
@@ -1003,7 +1023,8 @@ void Renderer::initShaders()
 
 	const VkDescriptorSetLayoutBinding sceneBindings[] = {
 		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0)},
-		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1)}
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1)},
+		{VulkanInit::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 2)}
 	};
 	const VkDescriptorSetLayoutCreateInfo sceneSetLayoutInfo = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -1054,7 +1075,8 @@ void Renderer::initShaders()
 		};	
 		VkDescriptorBufferInfo sceneBuffers[] = {
 			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].cameraBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].cameraBuffer).size},
-			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].dirLightBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].dirLightBuffer).size }
+			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].dirLightBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].dirLightBuffer).size },
+			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].pointLightBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].pointLightBuffer).size }
 		};
 
 		const VkWriteDescriptorSet globalWrites[] = {
@@ -1065,7 +1087,8 @@ void Renderer::initShaders()
 		vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(std::size(globalWrites)), globalWrites, 0, nullptr);
 		const VkWriteDescriptorSet sceneWrites[] = {
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_frame[i].sceneSet, &sceneBuffers[0], 0),
-			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_frame[i].sceneSet, &sceneBuffers[1], 1)
+			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_frame[i].sceneSet, &sceneBuffers[1], 1),
+			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_frame[i].sceneSet, &sceneBuffers[2], 2)
 		};
 		vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(std::size(sceneWrites)), sceneWrites, 0, nullptr);
 	}

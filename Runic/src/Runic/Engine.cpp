@@ -59,6 +59,16 @@ void Engine::setupScene() {
 	sunlight->diffuse = { 1.0f,1.0f,1.0f};
 	sunlight->ambient = { 0.7f, 0.7f, 0.7f};
 
+	for (int i = 0; i < 4; ++i)
+	{
+		std::shared_ptr<Entity> pointLightEntity = m_scene.CreateEntity();
+		LightComponent* pointLight = &pointLightEntity->AddComponent<LightComponent>();
+		pointLight->lightType = LightComponent::LightType::Point;
+		pointLight->position = { 25.0f * i, 0.0f, 0.0f };
+		pointLight->diffuse = { 0.0f,1.0f,1.0f };
+		pointLight->ambient = { 0.7f, 0.7f, 0.7f };
+	}
+
 	m_scene.m_camera = std::make_unique<Camera>();
 	m_scene.m_camera->m_yaw = -90.0f;
 	m_scene.m_camera->m_pos = { 0.0f, 2.0f, 0.0f };
