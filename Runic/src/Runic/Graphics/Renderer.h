@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-#include <vk_mem_alloc.h>
 #include <glm.hpp>
 
 #include <functional>
@@ -11,8 +9,6 @@
 #include "Runic/Graphics/Internal/PipelineBuilder.h"
 #include "Runic/Graphics/ResourceManager.h"
 
-#include "Runic/Structures/DeletionQueue.h"
-
 #include "Runic/Graphics/Device.h"
 #include "Runic/Graphics/Mesh.h"
 #include "Runic/Graphics/Texture.h"
@@ -21,7 +17,6 @@
 #include "Runic/Scene/Components/LightComponent.h"
 #include "Runic/Scene/Camera.h"
 
-constexpr unsigned int FRAME_OVERLAP = 2U;
 constexpr unsigned int MAX_OBJECTS = 1024;
 constexpr unsigned int MAX_TEXTURES = 128;
 constexpr unsigned int MAX_POINT_LIGHTS = 4U;
@@ -31,40 +26,10 @@ constexpr VkFormat DEFAULT_FORMAT = { VK_FORMAT_R8G8B8A8_SRGB };
 constexpr VkFormat NORMAL_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM };
 constexpr VkFormat DEPTH_FORMAT = { VK_FORMAT_D32_SFLOAT };
 
-
-
 struct SDL_Window;
 
 namespace Runic
 {
-	struct WindowContext
-	{
-		SDL_Window* window = { nullptr };
-		VkExtent2D extent = { 1920 , 1080 };
-		bool resized{ false };
-	};
-
-	struct CommandContext
-	{
-		VkCommandPool pool;
-		VkCommandBuffer buffer;
-	};
-
-	template<uint32_t FRAMES>
-	struct QueueContext
-	{
-		VkQueue queue;
-		uint32_t queueFamily;
-		CommandContext commands[FRAMES];
-	};
-
-	struct UploadContext
-	{
-		VkFence uploadFence;
-		VkCommandPool commandPool;
-		VkCommandBuffer commandBuffer;
-	};
-
 	struct Swapchain
 	{
 		VkSwapchainKHR swapchain;
@@ -224,7 +189,6 @@ namespace Runic
 
 		bool m_dirtySwapchain{ false };
 	private:
-		void initVulkan();
 		void initImguiRenderpass();
 		void createSwapchain();
 		void recreateSwapchain();
@@ -251,20 +215,6 @@ namespace Runic
 		[[nodiscard]] RenderFrame& getCurrentFrame() { return m_frame[getCurrentFrameNumber()]; }
 
 		Device* m_graphicsDevice;
-
-		VkInstance m_instance;
-		VkPhysicalDevice m_chosenGPU;
-		VkPhysicalDeviceProperties m_gpuProperties;
-		VkDevice m_device;
-		DeletionQueue m_instanceDeletionQueue;
-
-		VkSurfaceKHR m_surface;
-		VmaAllocator m_allocator;
-		VkDebugUtilsMessengerEXT m_debugMessenger;
-
-		Runic::QueueContext<FRAME_OVERLAP> m_graphics;
-		Runic::QueueContext<1> m_compute;
-		Runic::UploadContext m_uploadContext;
 
 		Runic::Swapchain m_swapchain;
 		uint32_t m_currentSwapchainImage;

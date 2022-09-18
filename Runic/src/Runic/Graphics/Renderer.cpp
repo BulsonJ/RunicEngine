@@ -1,6 +1,5 @@
 #include "Runic/Graphics/Renderer.h"
 
-#define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
 #include <SDL.h>
@@ -52,19 +51,17 @@ void Renderer::init(Device* device)
 
 	m_graphicsDevice = device;
 
-	initVulkan();
-
 	createSwapchain();
 	initGraphicsCommands();
 	initComputeCommands();
 	initSyncStructures();
 
-	m_pipelineManager = std::make_unique<PipelineManager>(m_device);
+	m_pipelineManager = std::make_unique<PipelineManager>(m_graphicsDevice->m_device);
 
 	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
-	vkCreateSampler(m_device, &samplerInfo, nullptr, &m_defaultSampler);
-	m_instanceDeletionQueue.push_function([=] {
-		vkDestroySampler(m_device, m_defaultSampler, nullptr);
+	vkCreateSampler(m_graphicsDevice->m_device, &samplerInfo, nullptr, &m_defaultSampler);
+	m_graphicsDevice->m_instanceDeletionQueue.push_function([=] {
+		vkDestroySampler(m_graphicsDevice->m_device, m_defaultSampler, nullptr);
 		});
 
 	initImguiRenderpass();
@@ -249,10 +246,10 @@ void Renderer::draw(Camera* const camera)
 
 	ImGui::Render();
 
-	VK_CHECK(vkWaitForFences(m_device, 1, &getCurrentFrame().renderFen, true, 1000000000));
+	VK_CHECK(vkWaitForFences(m_graphicsDevice->m_device, 1, &getCurrentFrame().renderFen, true, 1000000000));
 
 	uint32_t m_swapchainImageIndex;
-	VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &m_swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(m_graphicsDevice->m_device, m_swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &m_swapchainImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_dirtySwapchain)
 	{
 		m_dirtySwapchain = false;
@@ -264,10 +261,10 @@ void Renderer::draw(Camera* const camera)
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	VK_CHECK(vkResetFences(m_device, 1, &getCurrentFrame().renderFen));
-	VK_CHECK(vkResetCommandBuffer(m_graphics.commands[getCurrentFrameNumber()].buffer, 0));
+	VK_CHECK(vkResetFences(m_graphicsDevice->m_device, 1, &getCurrentFrame().renderFen));
+	VK_CHECK(vkResetCommandBuffer(m_graphicsDevice->m_graphics.commands[getCurrentFrameNumber()].buffer, 0));
 
-	const VkCommandBuffer cmd = m_graphics.commands[getCurrentFrameNumber()].buffer;
+	const VkCommandBuffer cmd = m_graphicsDevice->m_graphics.commands[getCurrentFrameNumber()].buffer;
 
 	const VkCommandBufferBeginInfo cmdBeginInfo = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -459,7 +456,7 @@ void Renderer::draw(Camera* const camera)
 		.pSignalSemaphores = &getCurrentFrame().renderSem,
 	};
 
-	vkQueueSubmit(m_graphics.queue, 1, &submit, getCurrentFrame().renderFen);
+	vkQueueSubmit(m_graphicsDevice->m_graphics.queue, 1, &submit, getCurrentFrame().renderFen);
 
 	const VkPresentInfoKHR presentInfo = {
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -470,7 +467,7 @@ void Renderer::draw(Camera* const camera)
 		.pSwapchains = &m_swapchain.swapchain,
 		.pImageIndices = &m_swapchainImageIndex,
 	};
-	vkQueuePresentKHR(m_graphics.queue, &presentInfo);
+	vkQueuePresentKHR(m_graphicsDevice->m_graphics.queue, &presentInfo);
 	FrameMark;
 	m_frameNumber++;
 }
@@ -490,82 +487,10 @@ void Runic::Renderer::GiveRenderables(const std::vector<std::shared_ptr<Runic::E
 	}
 }
 
-void Renderer::initVulkan() {
-	ZoneScoped;
-	vkb::InstanceBuilder builder;
-
-	const auto inst_ret = builder.set_app_name("Runic Engine")
-		.request_validation_layers(true)
-		.require_api_version(1, 3, 0)
-		.enable_extension("VK_EXT_debug_utils")
-		.use_default_debug_messenger()
-		.build();
-
-	const vkb::Instance vkb_inst = inst_ret.value();
-
-	m_instance = vkb_inst.instance;
-	m_debugMessenger = vkb_inst.debug_messenger;
-
-	SDL_Vulkan_CreateSurface(reinterpret_cast<SDL_Window*>(m_graphicsDevice->m_window->GetWindowPointer()), m_instance, &m_surface);
-
-	vkb::PhysicalDeviceSelector selector{ vkb_inst };
-	const vkb::PhysicalDevice physicalDevice = selector
-		.set_minimum_version(1, 2)
-		.set_surface(m_surface)
-		.select()
-		.value();
-
-	vkb::DeviceBuilder m_deviceBuilder{ physicalDevice };
-
-	VkPhysicalDeviceSynchronization2Features syncFeatures{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES,
-		.synchronization2 = true,
-	};
-
-	VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeature{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-		.pNext = &syncFeatures,
-		.dynamicRendering = VK_TRUE,
-	};
-
-	VkPhysicalDeviceDescriptorIndexingFeatures descIndexFeatures{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-		.pNext = &dynamicRenderingFeature,
-		.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
-		.descriptorBindingPartiallyBound = VK_TRUE,
-		.descriptorBindingVariableDescriptorCount = VK_TRUE,
-		.runtimeDescriptorArray = VK_TRUE,
-	};
-
-	const vkb::Device vkbDevice = m_deviceBuilder
-		.add_pNext(&descIndexFeatures)
-		.build()
-		.value();
-
-	m_device = vkbDevice.device;
-	m_chosenGPU = physicalDevice.physical_device;
-	m_gpuProperties = vkbDevice.physical_device.properties;
-
-	m_graphics.queue = vkbDevice.get_queue(vkb::QueueType::graphics).value();
-	m_graphics.queueFamily = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
-	m_compute.queue = vkbDevice.get_queue(vkb::QueueType::compute).value();
-	m_compute.queueFamily = vkbDevice.get_queue_index(vkb::QueueType::compute).value();
-
-	const VmaAllocatorCreateInfo m_allocatorInfo = {
-		.physicalDevice = m_chosenGPU,
-		.device = m_device,
-		.instance = m_instance,
-	};
-	vmaCreateAllocator(&m_allocatorInfo, &m_allocator);
-
-	ResourceManager::ptr = new ResourceManager(m_device, m_allocator);
-	LOG_CORE_INFO("Vulkan Initialised");
-}
-
 void Renderer::createSwapchain()
 {
 	ZoneScoped;
-	vkb::SwapchainBuilder m_swapchainBuilder{ m_chosenGPU,m_device,m_surface };
+	vkb::SwapchainBuilder m_swapchainBuilder{ m_graphicsDevice->m_chosenGPU,m_graphicsDevice->m_device,m_graphicsDevice->m_surface };
 
 	const VkExtent2D windowExtent{
 		.width = m_graphicsDevice->m_window->GetWidth(),
@@ -615,11 +540,11 @@ void Renderer::destroySwapchain()
 {
 	for (int i = 0; i < m_swapchain.imageViews.size(); i++)
 	{
-		vkDestroyFramebuffer(m_device, m_swapchain.framebuffers[i], nullptr);
-		vkDestroyImageView(m_device, m_swapchain.imageViews[i], nullptr);
+		vkDestroyFramebuffer(m_graphicsDevice->m_device, m_swapchain.framebuffers[i], nullptr);
+		vkDestroyImageView(m_graphicsDevice->m_device, m_swapchain.imageViews[i], nullptr);
 	}
-	vkDestroyRenderPass(m_device, m_imguiPass, nullptr);
-	vkDestroySwapchainKHR(m_device, m_swapchain.swapchain, nullptr);
+	vkDestroyRenderPass(m_graphicsDevice->m_device, m_imguiPass, nullptr);
+	vkDestroySwapchainKHR(m_graphicsDevice->m_device, m_swapchain.swapchain, nullptr);
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
@@ -642,7 +567,7 @@ void Renderer::recreateSwapchain()
 		SDL_WaitEvent(&e);
 	}
 
-	vkDeviceWaitIdle(m_device);
+	vkDeviceWaitIdle(m_graphicsDevice->m_device);
 
 	destroySwapchain();
 	createSwapchain();
@@ -697,7 +622,7 @@ void Renderer::initImguiRenderpass()
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependencies[0];
 
-	VK_CHECK(vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_imguiPass));
+	VK_CHECK(vkCreateRenderPass(m_graphicsDevice->m_device, &renderPassInfo, nullptr, &m_imguiPass));
 
 	VkFramebufferCreateInfo fb_info = {
 		.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -721,7 +646,7 @@ void Renderer::initImguiRenderpass()
 		fb_info.pAttachments = &attachment;
 		fb_info.attachmentCount = 1;
 
-		VK_CHECK(vkCreateFramebuffer(m_device, &fb_info, nullptr, &m_swapchain.framebuffers[i]));
+		VK_CHECK(vkCreateFramebuffer(m_graphicsDevice->m_device, &fb_info, nullptr, &m_swapchain.framebuffers[i]));
 	}
 }
 
@@ -762,7 +687,7 @@ void Renderer::initImgui()
 	};
 	
 	VkDescriptorPool imguiPool;
-	VK_CHECK(vkCreateDescriptorPool(m_device, &pool_info, nullptr, &imguiPool));
+	VK_CHECK(vkCreateDescriptorPool(m_graphicsDevice->m_device, &pool_info, nullptr, &imguiPool));
 	
 	ImGui::CreateContext();
 
@@ -837,10 +762,10 @@ void Renderer::initImgui()
 	
 	//this initializes imgui for Vulkan
 	ImGui_ImplVulkan_InitInfo init_info = {
-		.Instance = m_instance,
-		.PhysicalDevice = m_chosenGPU,
-		.Device = m_device,
-		.Queue = m_graphics.queue,
+		.Instance = m_graphicsDevice->m_instance,
+		.PhysicalDevice = m_graphicsDevice->m_chosenGPU,
+		.Device = m_graphicsDevice->m_device,
+		.Queue = m_graphicsDevice->m_graphics.queue,
 		.DescriptorPool = imguiPool,
 		.MinImageCount = 3,
 		.ImageCount = 3,
@@ -862,8 +787,8 @@ void Renderer::initImgui()
 	////clear font textures from cpu data
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
 	
-	m_instanceDeletionQueue.push_function([=]{
-		vkDestroyDescriptorPool(m_device, imguiPool, nullptr);
+	m_graphicsDevice->m_instanceDeletionQueue.push_function([=]{
+		vkDestroyDescriptorPool(m_graphicsDevice->m_device, imguiPool, nullptr);
 		ImGui_ImplVulkan_Shutdown();
 		});
 }
@@ -876,14 +801,14 @@ void Renderer::initGraphicsCommands()
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.pNext = nullptr,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = m_graphics.queueFamily
+		.queueFamilyIndex = m_graphicsDevice->m_graphics.queueFamily
 	};
 
 	for (int i = 0; i < 2; ++i)
 	{
-		VkCommandPool* commandPool = &m_graphics.commands[i].pool;
+		VkCommandPool* commandPool = &m_graphicsDevice->m_graphics.commands[i].pool;
 
-		vkCreateCommandPool(m_device, &m_graphicsCommandPoolCreateInfo, nullptr, commandPool);
+		vkCreateCommandPool(m_graphicsDevice->m_device, &m_graphicsCommandPoolCreateInfo, nullptr, commandPool);
 
 		const VkCommandBufferAllocateInfo bufferAllocInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -893,15 +818,15 @@ void Renderer::initGraphicsCommands()
 			.commandBufferCount = 1
 		};
 
-		vkAllocateCommandBuffers(m_device, &bufferAllocInfo, &m_graphics.commands[i].buffer);
+		vkAllocateCommandBuffers(m_graphicsDevice->m_device, &bufferAllocInfo, &m_graphicsDevice->m_graphics.commands[i].buffer);
 	}
 
 
-	const VkCommandPoolCreateInfo uploadCommandPoolInfo = VulkanInit::commandPoolCreateInfo(m_graphics.queueFamily);
-	vkCreateCommandPool(m_device, &uploadCommandPoolInfo, nullptr, &m_uploadContext.commandPool);
+	const VkCommandPoolCreateInfo uploadCommandPoolInfo = VulkanInit::commandPoolCreateInfo(m_graphicsDevice->m_graphics.queueFamily);
+	vkCreateCommandPool(m_graphicsDevice->m_device, &uploadCommandPoolInfo, nullptr, &m_graphicsDevice->m_uploadContext.commandPool);
 
-	const VkCommandBufferAllocateInfo cmdAllocInfo = VulkanInit::commandBufferAllocateInfo(m_uploadContext.commandPool, 1);
-	vkAllocateCommandBuffers(m_device, &cmdAllocInfo, &m_uploadContext.commandBuffer);
+	const VkCommandBufferAllocateInfo cmdAllocInfo = VulkanInit::commandBufferAllocateInfo(m_graphicsDevice->m_uploadContext.commandPool, 1);
+	vkAllocateCommandBuffers(m_graphicsDevice->m_device, &cmdAllocInfo, &m_graphicsDevice->m_uploadContext.commandBuffer);
 }
 
 void Renderer::initComputeCommands(){
@@ -910,12 +835,12 @@ void Renderer::initComputeCommands(){
 		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 		.pNext = nullptr,
 		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = m_compute.queueFamily
+		.queueFamilyIndex = m_graphicsDevice->m_compute.queueFamily
 	};
 
-	VkCommandPool* commandPool = &m_compute.commands[0].pool;
+	VkCommandPool* commandPool = &m_graphicsDevice->m_compute.commands[0].pool;
 
-	vkCreateCommandPool(m_device, &computeCommandPoolCreateInfo, nullptr, commandPool);
+	vkCreateCommandPool(m_graphicsDevice->m_device, &computeCommandPoolCreateInfo, nullptr, commandPool);
 
 	const VkCommandBufferAllocateInfo bufferAllocInfo{
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -925,7 +850,7 @@ void Renderer::initComputeCommands(){
 		.commandBufferCount = 1
 	};
 
-	vkAllocateCommandBuffers(m_device, &bufferAllocInfo, &m_compute.commands[0].buffer);
+	vkAllocateCommandBuffers(m_graphicsDevice->m_device, &bufferAllocInfo, &m_graphicsDevice->m_compute.commands[0].buffer);
 }
 
 void Renderer::initSyncStructures()
@@ -940,7 +865,7 @@ void Renderer::initSyncStructures()
 			.flags = VK_FENCE_CREATE_SIGNALED_BIT
 		};
 
-		vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_frame[i].renderFen);
+		vkCreateFence(m_graphicsDevice->m_device, &fenceCreateInfo, nullptr, &m_frame[i].renderFen);
 
 		const VkSemaphoreCreateInfo semaphoreCreateInfo = {
 			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -948,13 +873,13 @@ void Renderer::initSyncStructures()
 			.flags = 0
 		};
 
-		vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_frame[i].presentSem);
-		vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_frame[i].renderSem);
+		vkCreateSemaphore(m_graphicsDevice->m_device, &semaphoreCreateInfo, nullptr, &m_frame[i].presentSem);
+		vkCreateSemaphore(m_graphicsDevice->m_device, &semaphoreCreateInfo, nullptr, &m_frame[i].renderSem);
 	}
 
 
 	const VkFenceCreateInfo uploadFenceCreateInfo = VulkanInit::fenceCreateInfo();
-	vkCreateFence(m_device, &uploadFenceCreateInfo, nullptr, &m_uploadContext.uploadFence);
+	vkCreateFence(m_graphicsDevice->m_device, &uploadFenceCreateInfo, nullptr, &m_graphicsDevice->m_uploadContext.uploadFence);
 
 
 }
@@ -976,8 +901,8 @@ void Renderer::initShaders()
 		.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes)),
 		.pPoolSizes = poolSizes,
 	};
-	vkCreateDescriptorPool(m_device, &poolCreateInfo, nullptr, &m_globalPool);
-	vkCreateDescriptorPool(m_device, &poolCreateInfo, nullptr, &m_scenePool);
+	vkCreateDescriptorPool(m_graphicsDevice->m_device, &poolCreateInfo, nullptr, &m_globalPool);
+	vkCreateDescriptorPool(m_graphicsDevice->m_device, &poolCreateInfo, nullptr, &m_scenePool);
 
 	// create buffers
 
@@ -1034,8 +959,8 @@ void Renderer::initShaders()
 		.pBindings = sceneBindings,
 	};
 
-	vkCreateDescriptorSetLayout(m_device, &globalSetLayoutInfo, nullptr, &m_globalSetLayout);
-	vkCreateDescriptorSetLayout(m_device, &sceneSetLayoutInfo, nullptr, &m_sceneSetLayout);
+	vkCreateDescriptorSetLayout(m_graphicsDevice->m_device, &globalSetLayoutInfo, nullptr, &m_globalSetLayout);
+	vkCreateDescriptorSetLayout(m_graphicsDevice->m_device, &sceneSetLayoutInfo, nullptr, &m_sceneSetLayout);
 
 	// create descriptors
 
@@ -1065,8 +990,8 @@ void Renderer::initShaders()
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		vkAllocateDescriptorSets(m_device, &allocInfo, &m_frame[i].globalSet);
-		vkAllocateDescriptorSets(m_device, &sceneAllocInfo, &m_frame[i].sceneSet);
+		vkAllocateDescriptorSets(m_graphicsDevice->m_device, &allocInfo, &m_frame[i].globalSet);
+		vkAllocateDescriptorSets(m_graphicsDevice->m_device, &sceneAllocInfo, &m_frame[i].sceneSet);
 
 		VkDescriptorBufferInfo globalBuffers[] = {
 			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].drawDataBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].drawDataBuffer).size },
@@ -1084,13 +1009,13 @@ void Renderer::initShaders()
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_frame[i].globalSet, &globalBuffers[1], 1),
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_frame[i].globalSet, &globalBuffers[2], 2),
 		};
-		vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(std::size(globalWrites)), globalWrites, 0, nullptr);
+		vkUpdateDescriptorSets(m_graphicsDevice->m_device, static_cast<uint32_t>(std::size(globalWrites)), globalWrites, 0, nullptr);
 		const VkWriteDescriptorSet sceneWrites[] = {
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_frame[i].sceneSet, &sceneBuffers[0], 0),
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_frame[i].sceneSet, &sceneBuffers[1], 1),
 			VulkanInit::writeDescriptorBuffer(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_frame[i].sceneSet, &sceneBuffers[2], 2)
 		};
-		vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(std::size(sceneWrites)), sceneWrites, 0, nullptr);
+		vkUpdateDescriptorSets(m_graphicsDevice->m_device, static_cast<uint32_t>(std::size(sceneWrites)), sceneWrites, 0, nullptr);
 	}
 
 	// set up push constants
@@ -1133,40 +1058,34 @@ void Renderer::deinit()
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		vkWaitForFences(m_device, 1, &m_frame[i].renderFen, true, 1000000000);
+		vkWaitForFences(m_graphicsDevice->m_device, 1, &m_frame[i].renderFen, true, 1000000000);
 	}
 
-	m_instanceDeletionQueue.flush();
+	m_graphicsDevice->m_instanceDeletionQueue.flush();
 
 	destroySwapchain();
 
 	delete ResourceManager::ptr;
 
 	m_pipelineManager->Deinit();
-	vkDestroyDescriptorPool(m_device, m_scenePool, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_sceneSetLayout, nullptr);
-	vkDestroyDescriptorPool(m_device, m_globalPool, nullptr);
-	vkDestroyDescriptorSetLayout(m_device, m_globalSetLayout, nullptr);
+	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_scenePool, nullptr);
+	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_sceneSetLayout, nullptr);
+	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_globalPool, nullptr);
+	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_globalSetLayout, nullptr);
 
-	vkDestroyFence(m_device, m_uploadContext.uploadFence, nullptr);
-	vkDestroyCommandPool(m_device, m_uploadContext.commandPool, nullptr);
+	vkDestroyFence(m_graphicsDevice->m_device, m_graphicsDevice->m_uploadContext.uploadFence, nullptr);
+	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_uploadContext.commandPool, nullptr);
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		vkDestroySemaphore(m_device, m_frame[i].presentSem, nullptr);
-		vkDestroySemaphore(m_device, m_frame[i].renderSem, nullptr);
-		vkDestroyFence(m_device, m_frame[i].renderFen, nullptr);
+		vkDestroySemaphore(m_graphicsDevice->m_device, m_frame[i].presentSem, nullptr);
+		vkDestroySemaphore(m_graphicsDevice->m_device, m_frame[i].renderSem, nullptr);
+		vkDestroyFence(m_graphicsDevice->m_device, m_frame[i].renderFen, nullptr);
 	}
 
-	vkDestroyCommandPool(m_device, m_graphics.commands[0].pool, nullptr);
-	vkDestroyCommandPool(m_device, m_graphics.commands[1].pool, nullptr);
-	vkDestroyCommandPool(m_device, m_compute.commands[0].pool, nullptr);
-
-	vmaDestroyAllocator(m_allocator);
-	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-	vkb::destroy_debug_utils_messenger(m_instance, m_debugMessenger);
-	vkDestroyDevice(m_device, nullptr);
-	vkDestroyInstance(m_instance, nullptr);
+	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_graphics.commands[0].pool, nullptr);
+	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_graphics.commands[1].pool, nullptr);
+	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_compute.commands[0].pool, nullptr);
 }
 
 Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)
@@ -1267,7 +1186,7 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 			.pImageInfo = &bindlessImageInfo,
 		};
 
-		vkUpdateDescriptorSets(m_device, 1, &write, 0, nullptr);
+		vkUpdateDescriptorSets(m_graphicsDevice->m_device, 1, &write, 0, nullptr);
 	}
 
 	return bindlessHandle;
@@ -1486,7 +1405,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 
 void Renderer::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function)
 {
-	VkCommandBuffer cmd = m_uploadContext.commandBuffer;
+	VkCommandBuffer cmd = m_graphicsDevice->m_uploadContext.commandBuffer;
 
 	VkCommandBufferBeginInfo cmdBeginInfo = VulkanInit::commandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -1498,12 +1417,12 @@ void Renderer::immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& functi
 
 	VkSubmitInfo submit = VulkanInit::submitInfo(&cmd);
 
-	vkQueueSubmit(m_graphics.queue, 1, &submit, m_uploadContext.uploadFence);
+	vkQueueSubmit(m_graphicsDevice->m_graphics.queue, 1, &submit, m_graphicsDevice->m_uploadContext.uploadFence);
 
-	vkWaitForFences(m_device, 1, &m_uploadContext.uploadFence, true, 9999999999);
-	vkResetFences(m_device, 1, &m_uploadContext.uploadFence);
+	vkWaitForFences(m_graphicsDevice->m_device, 1, &m_graphicsDevice->m_uploadContext.uploadFence, true, 9999999999);
+	vkResetFences(m_graphicsDevice->m_device, 1, &m_graphicsDevice->m_uploadContext.uploadFence);
 
-	vkResetCommandPool(m_device, m_uploadContext.commandPool, 0);
+	vkResetCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_uploadContext.commandPool, 0);
 }
 
 VertexInputDescription RenderMesh::getVertexDescription()
