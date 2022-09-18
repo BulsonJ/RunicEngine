@@ -36,9 +36,10 @@ void Device::init(Window* window)
 	m_window = window;
 
 	initVulkan();
+	createSwapchain();
 	initGraphicsCommands();
 	initComputeCommands();
-	createSwapchain();
+
 	initSyncStructures();
 
 	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
@@ -82,9 +83,8 @@ void Device::deinit()
 	vkDestroyInstance(m_instance, nullptr);
 }
 
-void Device::BeginFrame()
+bool Device::BeginFrame()
 {
-
 	VK_CHECK(vkWaitForFences(m_device, 1, &getCurrentFrame().renderFen, true, 1000000000));
 
 	VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &m_currentSwapchainImage);
@@ -92,7 +92,7 @@ void Device::BeginFrame()
 	{
 		m_dirtySwapchain = false;
 		recreateSwapchain();
-		return;
+		return false;
 	}
 	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
 	{
@@ -107,7 +107,7 @@ void Device::BeginFrame()
 	ImGui::NewFrame();
 	Editor::DrawEditor();
 	ImGui::Render();
-
+	return true;
 }
 
 void Device::AddImGuiToCommandBuffer()
@@ -193,7 +193,7 @@ void Device::Present()
 		.swapchainCount = 1,
 		.pSwapchains = &m_swapchain.swapchain,
 		.pImageIndices = &m_currentSwapchainImage,
-		};
+	};
 
 	vkQueuePresentKHR(m_graphics.queue, &presentInfo);
 }
@@ -547,7 +547,6 @@ void Device::initImguiRenderpass()
 	//create m_framebuffers for each of the m_swapchain image views
 	for (int i = 0; i < m_swapchain_imagecount; i++)
 	{
-
 		VkImageView attachment = m_swapchain.imageViews[i];
 
 		fb_info.pAttachments = &attachment;

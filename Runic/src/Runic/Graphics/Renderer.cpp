@@ -221,7 +221,10 @@ void Renderer::draw(Camera* const camera)
 
 	m_currentCamera = camera;
 
-	m_graphicsDevice->BeginFrame();
+	if (!m_graphicsDevice->BeginFrame())
+	{
+		return;
+	}
 
 	const VkCommandBuffer cmd = m_graphicsDevice->m_graphics.commands[m_graphicsDevice->getCurrentFrameNumber()].buffer;
 

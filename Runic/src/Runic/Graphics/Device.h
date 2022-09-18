@@ -61,7 +61,7 @@ namespace Runic
 		void init(Window* window);
 		void deinit();
 
-		void BeginFrame();
+		bool BeginFrame();
 		void AddImGuiToCommandBuffer();
 		void EndFrame();
 		void Present();
