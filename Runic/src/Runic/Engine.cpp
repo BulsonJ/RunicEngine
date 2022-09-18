@@ -15,7 +15,8 @@ void Engine::init() {
 
 	Log::Init();
 	m_window.Init(WindowProps{ .title = "Runic Engine",.width = 1920U, .height = 1080U });
-	m_rend.init(&m_window);
+	m_device.init(&m_window);
+	m_rend.init(&m_device);
 
 	setupScene();
 }

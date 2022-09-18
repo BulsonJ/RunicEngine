@@ -46,11 +46,11 @@ using namespace Runic;
 	} while (0)
 
 
-void Renderer::init(Window* window)
+void Renderer::init(Device* device)
 {
 	ZoneScoped;
 
-	m_window = window;
+	m_graphicsDevice = device;
 
 	initVulkan();
 
@@ -281,15 +281,15 @@ void Renderer::draw(Camera* const camera)
 	const VkViewport viewport{
 		.x = 0.0f,
 		.y = 0.0f,
-		.width = static_cast<float>(m_window->GetWidth()),
-		.height = static_cast<float>(m_window->GetHeight()),
+		.width = static_cast<float>(m_graphicsDevice->m_window->GetWidth()),
+		.height = static_cast<float>(m_graphicsDevice->m_window->GetHeight()),
 		.minDepth = 0.0f,
 		.maxDepth = 1.0f,
 	};
 
 	const VkRect2D scissor{
 		.offset = {.x = 0,.y = 0},
-		.extent = {.width = m_window->GetWidth(), .height = m_window->GetHeight()}
+		.extent = {.width = m_graphicsDevice->m_window->GetWidth(), .height = m_graphicsDevice->m_window->GetHeight()}
 	};
 
 	vkCmdSetViewport(cmd, 0, 1, &viewport);
@@ -431,8 +431,8 @@ void Renderer::draw(Camera* const camera)
 		.color = { 0.1f, 0.1f, 0.1f, 1.0f }
 	};
 	const VkExtent2D windowExtent{
-		.width = m_window->GetWidth(),
-		.height = m_window->GetHeight(),
+		.width = m_graphicsDevice->m_window->GetWidth(),
+		.height = m_graphicsDevice->m_window->GetHeight(),
 	};
 	VkRenderPassBeginInfo rpInfo = VulkanInit::renderpassBeginInfo(m_imguiPass, windowExtent, m_swapchain.framebuffers[m_swapchainImageIndex]);
 	const VkClearValue clearValues[] = { clearValue };
@@ -506,7 +506,7 @@ void Renderer::initVulkan() {
 	m_instance = vkb_inst.instance;
 	m_debugMessenger = vkb_inst.debug_messenger;
 
-	SDL_Vulkan_CreateSurface(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()), m_instance, &m_surface);
+	SDL_Vulkan_CreateSurface(reinterpret_cast<SDL_Window*>(m_graphicsDevice->m_window->GetWindowPointer()), m_instance, &m_surface);
 
 	vkb::PhysicalDeviceSelector selector{ vkb_inst };
 	const vkb::PhysicalDevice physicalDevice = selector
@@ -568,8 +568,8 @@ void Renderer::createSwapchain()
 	vkb::SwapchainBuilder m_swapchainBuilder{ m_chosenGPU,m_device,m_surface };
 
 	const VkExtent2D windowExtent{
-		.width = m_window->GetWidth(),
-		.height = m_window->GetHeight(),
+		.width = m_graphicsDevice->m_window->GetWidth(),
+		.height = m_graphicsDevice->m_window->GetHeight(),
 	};
 
 	vkb::Swapchain vkbm_swapchain = m_swapchainBuilder
@@ -633,11 +633,11 @@ void Renderer::recreateSwapchain()
 	ZoneScoped;
 	
 	SDL_Event e;
-	int flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()));
+	int flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_graphicsDevice->m_window->GetWindowPointer()));
 	bool minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
 	while (minimized)
 	{
-		flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()));
+		flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_graphicsDevice->m_window->GetWindowPointer()));
 		minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
 		SDL_WaitEvent(&e);
 	}
@@ -704,8 +704,8 @@ void Renderer::initImguiRenderpass()
 		.pNext = nullptr,
 		.renderPass = m_imguiPass,
 		.attachmentCount = 1,
-		.width = m_window->GetWidth(),
-		.height = m_window->GetHeight(),
+		.width = m_graphicsDevice->m_window->GetWidth(),
+		.height = m_graphicsDevice->m_window->GetHeight(),
 		.layers = 1,
 	};
 
@@ -833,7 +833,7 @@ void Renderer::initImgui()
 		}
 	}
 	
-	ImGui_ImplSDL2_InitForVulkan(reinterpret_cast<SDL_Window*>(m_window->GetWindowPointer()));
+	ImGui_ImplSDL2_InitForVulkan(reinterpret_cast<SDL_Window*>(m_graphicsDevice->m_window->GetWindowPointer()));
 	
 	//this initializes imgui for Vulkan
 	ImGui_ImplVulkan_InitInfo init_info = {

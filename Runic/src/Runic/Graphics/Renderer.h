@@ -10,10 +10,10 @@
 
 #include "Runic/Graphics/Internal/PipelineBuilder.h"
 #include "Runic/Graphics/ResourceManager.h"
-#include "Runic/Window.h"
 
 #include "Runic/Structures/DeletionQueue.h"
 
+#include "Runic/Graphics/Device.h"
 #include "Runic/Graphics/Mesh.h"
 #include "Runic/Graphics/Texture.h"
 #include "Runic/Scene/Entity.h"
@@ -212,7 +212,7 @@ namespace Runic
 	class Renderer
 	{
 	public:
-		void init(Window* window);
+		void init(Device* device);
 		void deinit();
 
 		// Public rendering API
@@ -250,7 +250,7 @@ namespace Runic
 		[[nodiscard]] int getCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
 		[[nodiscard]] RenderFrame& getCurrentFrame() { return m_frame[getCurrentFrameNumber()]; }
 
-		Window* m_window;
+		Device* m_graphicsDevice;
 
 		VkInstance m_instance;
 		VkPhysicalDevice m_chosenGPU;

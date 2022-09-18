@@ -5,6 +5,7 @@
 
 #include "Runic/Window.h"
 #include "Runic/Scene/Scene.h"
+#include "Runic/Graphics/Device.h"
 
 namespace Runic
 {
@@ -18,6 +19,7 @@ namespace Runic
 		void setupScene();
 
 		Window m_window;
+		Device m_device;
 		Renderer m_rend;
 		Scene m_scene;
 
