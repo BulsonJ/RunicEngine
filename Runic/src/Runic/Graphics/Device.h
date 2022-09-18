@@ -6,8 +6,13 @@
 
 // internal
 #include "Runic/Structures/DeletionQueue.h"
+#include "Runic/Graphics/ResourceManager.h"
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
+
+constexpr VkFormat DEFAULT_FORMAT = { VK_FORMAT_R8G8B8A8_SRGB };
+constexpr VkFormat NORMAL_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM };
+constexpr VkFormat DEPTH_FORMAT = { VK_FORMAT_D32_SFLOAT };
 
 namespace Runic
 {
@@ -32,13 +37,39 @@ namespace Runic
 		VkCommandBuffer commandBuffer;
 	};
 
+	struct Swapchain
+	{
+		VkSwapchainKHR swapchain;
+		VkFormat imageFormat;
+		std::vector<VkImage> images;
+		std::vector<VkImageView> imageViews;
+		std::vector<VkFramebuffer> framebuffers;
+	};
+
+	struct RenderFrame
+	{
+		VkSemaphore presentSem;
+		VkSemaphore	renderSem;
+		VkFence renderFen;
+	};
+
 	class Device
 	{
 	public:
 		void init(Window* window);
 		void deinit();
 
+		void BeginFrame();
+		void EndFrame();
+		void Present();
+
+		void WaitIdle();
+		void WaitRender();
+
 		// Move to private once device functions setup
+		[[nodiscard]] int getCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
+		[[nodiscard]] RenderFrame& getCurrentFrame() { return m_frame[getCurrentFrameNumber()]; }
+
 		Window* m_window;
 
 		VkInstance m_instance;
@@ -54,10 +85,28 @@ namespace Runic
 		Runic::QueueContext<FRAME_OVERLAP> m_graphics;
 		Runic::QueueContext<1> m_compute;
 		Runic::UploadContext m_uploadContext;
+
+		Runic::Swapchain m_swapchain;
+		uint32_t m_currentSwapchainImage;
+		bool m_dirtySwapchain {false};
+
+		RenderFrame m_frame[FRAME_OVERLAP];
+		int m_frameNumber{};
+
+		// Create render target function that caches these, rebuilds them on recreate swapchain?
+		// Aren't stricly tied to device, just Renderer that is really deciding to create them as an extra implementation detail
+		ImageHandle m_renderImage;
+		ImageHandle m_depthImage;
+
 	private:
 		void initVulkan();
 
 		void initGraphicsCommands();
 		void initComputeCommands();
+
+		void createSwapchain();
+		void recreateSwapchain();
+		void destroySwapchain();
+		void initSyncStructures();
 	};
 }

@@ -95,7 +95,7 @@ void Engine::run()
 			}
 			if (e.window.event == SDL_WINDOWEVENT_RESIZED || e.window.event == SDL_WINDOWEVENT_MINIMIZED)
 			{
-				m_rend.m_dirtySwapchain = true;
+				m_device.m_dirtySwapchain = true;
 				m_window.Update();
 				break;
 			}

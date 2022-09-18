@@ -20,24 +20,12 @@
 constexpr unsigned int MAX_OBJECTS = 1024;
 constexpr unsigned int MAX_TEXTURES = 128;
 constexpr unsigned int MAX_POINT_LIGHTS = 4U;
-
 constexpr glm::vec3 UP_DIR = { 0.0f,1.0f,0.0f };
-constexpr VkFormat DEFAULT_FORMAT = { VK_FORMAT_R8G8B8A8_SRGB };
-constexpr VkFormat NORMAL_FORMAT = { VK_FORMAT_R8G8B8A8_UNORM };
-constexpr VkFormat DEPTH_FORMAT = { VK_FORMAT_D32_SFLOAT };
 
 struct SDL_Window;
 
 namespace Runic
 {
-	struct Swapchain
-	{
-		VkSwapchainKHR swapchain;
-		VkFormat imageFormat;
-		std::vector<VkImage> images;
-		std::vector<VkImageView> imageViews;
-		std::vector<VkFramebuffer> framebuffers;
-	};
 
 	namespace GPUData
 	{
@@ -157,12 +145,8 @@ namespace Runic
 		GPUData::Material materialData;
 	};
 
-	struct RenderFrame
+	struct RenderFrameObjects
 	{
-		VkSemaphore presentSem;
-		VkSemaphore	renderSem;
-		VkFence renderFen;
-
 		VkDescriptorSet globalSet;
 		BufferHandle transformBuffer;
 		BufferHandle materialBuffer;
@@ -186,15 +170,8 @@ namespace Runic
 		MeshHandle uploadMesh(const MeshDesc& mesh);
 		TextureHandle uploadTexture(const Texture& texture);
 		void setSkybox(TextureHandle texture);
-
-		bool m_dirtySwapchain{ false };
 	private:
 		void initImguiRenderpass();
-		void createSwapchain();
-		void recreateSwapchain();
-		void destroySwapchain();
-
-		void initSyncStructures();
 
 		void initImgui();
 		void initImguiRenderImages();
@@ -208,23 +185,14 @@ namespace Runic
 		ImageHandle uploadTextureInternalCubemap(const Runic::Texture& image);
 
 		void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
-
-		[[nodiscard]] int getCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
-		[[nodiscard]] RenderFrame& getCurrentFrame() { return m_frame[getCurrentFrameNumber()]; }
+		[[nodiscard]] RenderFrameObjects& getCurrentFrame() { return m_frame[m_graphicsDevice->getCurrentFrameNumber()]; }
 
 		Device* m_graphicsDevice;
-
-		Runic::Swapchain m_swapchain;
-		uint32_t m_currentSwapchainImage;
+		RenderFrameObjects m_frame[FRAME_OVERLAP];
 
 		VkRenderPass m_imguiPass;
 		ImTextureID m_imguiRenderTexture;
 		ImTextureID m_imguiDepthTexture;
-
-		RenderFrame m_frame[FRAME_OVERLAP];
-		ImageHandle m_renderImage;
-		ImageHandle m_depthImage;
-		int m_frameNumber{};
 
 		std::unique_ptr<PipelineManager> m_pipelineManager;
 

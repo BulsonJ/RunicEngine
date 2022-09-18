@@ -51,9 +51,6 @@ void Renderer::init(Device* device)
 
 	m_graphicsDevice = device;
 
-	createSwapchain();
-	initSyncStructures();
-
 	m_pipelineManager = std::make_unique<PipelineManager>(m_graphicsDevice->m_device);
 
 	VkSamplerCreateInfo samplerInfo = VulkanInit::samplerCreateInfo(VK_FILTER_NEAREST);
@@ -243,26 +240,9 @@ void Renderer::draw(Camera* const camera)
 	Editor::DrawEditor();
 
 	ImGui::Render();
+	m_graphicsDevice->BeginFrame();
 
-	VK_CHECK(vkWaitForFences(m_graphicsDevice->m_device, 1, &getCurrentFrame().renderFen, true, 1000000000));
-
-	uint32_t m_swapchainImageIndex;
-	VkResult result = vkAcquireNextImageKHR(m_graphicsDevice->m_device, m_swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &m_swapchainImageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_dirtySwapchain)
-	{
-		m_dirtySwapchain = false;
-		recreateSwapchain();
-		return;
-	}
-	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-	{
-		throw std::runtime_error("failed to acquire swap chain image!");
-	}
-
-	VK_CHECK(vkResetFences(m_graphicsDevice->m_device, 1, &getCurrentFrame().renderFen));
-	VK_CHECK(vkResetCommandBuffer(m_graphicsDevice->m_graphics.commands[getCurrentFrameNumber()].buffer, 0));
-
-	const VkCommandBuffer cmd = m_graphicsDevice->m_graphics.commands[getCurrentFrameNumber()].buffer;
+	const VkCommandBuffer cmd = m_graphicsDevice->m_graphics.commands[m_graphicsDevice->getCurrentFrameNumber()].buffer;
 
 	const VkCommandBufferBeginInfo cmdBeginInfo = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -299,7 +279,7 @@ void Renderer::draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-		.image = m_swapchain.images[m_swapchainImageIndex],
+		.image = m_graphicsDevice->m_swapchain.images[m_graphicsDevice->m_currentSwapchainImage],
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.baseMipLevel = 0,
@@ -310,7 +290,7 @@ void Renderer::draw(Camera* const camera)
 	};
 
 	VkImageMemoryBarrier2 renderImgMemBarrier = presentImgMemBarrier;
-	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(m_renderImage).image;
+	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(m_graphicsDevice->m_renderImage).image;
 
 	const VkImageMemoryBarrier2 depthImgMemBarrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -320,7 +300,7 @@ void Renderer::draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(m_depthImage).image,
+		.image = ResourceManager::ptr->GetImage(m_graphicsDevice->m_depthImage).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 			.baseMipLevel = 0,
@@ -342,7 +322,7 @@ void Renderer::draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(m_renderImage).imageView,
+		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->m_renderImage).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -353,7 +333,7 @@ void Renderer::draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo depthAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(m_depthImage).imageView,
+		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->m_depthImage).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -384,7 +364,7 @@ void Renderer::draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR,
 		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(m_renderImage).image,
+		.image = ResourceManager::ptr->GetImage(m_graphicsDevice->m_renderImage).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.baseMipLevel = 0,
@@ -402,7 +382,7 @@ void Renderer::draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT_KHR,
 		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(m_depthImage).image,
+		.image = ResourceManager::ptr->GetImage(m_graphicsDevice->m_depthImage).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 			.baseMipLevel = 0,
@@ -429,7 +409,7 @@ void Renderer::draw(Camera* const camera)
 		.width = m_graphicsDevice->m_window->GetWidth(),
 		.height = m_graphicsDevice->m_window->GetHeight(),
 	};
-	VkRenderPassBeginInfo rpInfo = VulkanInit::renderpassBeginInfo(m_imguiPass, windowExtent, m_swapchain.framebuffers[m_swapchainImageIndex]);
+	VkRenderPassBeginInfo rpInfo = VulkanInit::renderpassBeginInfo(m_imguiPass, windowExtent, m_graphicsDevice->m_swapchain.framebuffers[m_graphicsDevice->m_currentSwapchainImage]);
 	const VkClearValue clearValues[] = { clearValue };
 	rpInfo.clearValueCount = 1;
 	rpInfo.pClearValues = &clearValues[0];
@@ -446,28 +426,19 @@ void Renderer::draw(Camera* const camera)
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.pNext = nullptr,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &getCurrentFrame().presentSem,
+		.pWaitSemaphores = &m_graphicsDevice->getCurrentFrame().presentSem,
 		.pWaitDstStageMask = &waitStage,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &cmd,
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &getCurrentFrame().renderSem,
+		.pSignalSemaphores = &m_graphicsDevice->getCurrentFrame().renderSem,
 	};
 
-	vkQueueSubmit(m_graphicsDevice->m_graphics.queue, 1, &submit, getCurrentFrame().renderFen);
+	vkQueueSubmit(m_graphicsDevice->m_graphics.queue, 1, &submit, m_graphicsDevice->getCurrentFrame().renderFen);
 
-	const VkPresentInfoKHR presentInfo = {
-		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-		.pNext = nullptr,
-		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &getCurrentFrame().renderSem,
-		.swapchainCount = 1,
-		.pSwapchains = &m_swapchain.swapchain,
-		.pImageIndices = &m_swapchainImageIndex,
-	};
-	vkQueuePresentKHR(m_graphicsDevice->m_graphics.queue, &presentInfo);
 	FrameMark;
-	m_frameNumber++;
+	m_graphicsDevice->EndFrame();
+	m_graphicsDevice->Present();
 }
 
 void Runic::Renderer::GiveRenderables(const std::vector<std::shared_ptr<Runic::Entity>>& entities)
@@ -485,99 +456,10 @@ void Runic::Renderer::GiveRenderables(const std::vector<std::shared_ptr<Runic::E
 	}
 }
 
-void Renderer::createSwapchain()
-{
-	ZoneScoped;
-	vkb::SwapchainBuilder m_swapchainBuilder{ m_graphicsDevice->m_chosenGPU,m_graphicsDevice->m_device,m_graphicsDevice->m_surface };
-
-	const VkExtent2D windowExtent{
-		.width = m_graphicsDevice->m_window->GetWidth(),
-		.height = m_graphicsDevice->m_window->GetHeight(),
-	};
-
-	vkb::Swapchain vkbm_swapchain = m_swapchainBuilder
-		.use_default_format_selection()
-		.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-		.set_desired_extent(windowExtent.width, windowExtent.height)
-		.build()
-		.value();
-
-	m_swapchain.swapchain = vkbm_swapchain.swapchain;
-	m_swapchain.images = vkbm_swapchain.get_images().value();
-	m_swapchain.imageViews = vkbm_swapchain.get_image_views().value();
-	m_swapchain.imageFormat = vkbm_swapchain.image_format;
-
-	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(windowExtent.height * windowExtent.width * 4) };
-	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
-
-	const VkExtent3D imageExtent{
-		.width = static_cast<uint32_t>(windowExtent.width),
-		.height = static_cast<uint32_t>(windowExtent.height),
-		.depth = 1,
-	};
-
-	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
-	const VkImageCreateInfo m_depthImageInfo = VulkanInit::imageCreateInfo(DEPTH_FORMAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, imageExtent);
-
-	m_renderImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
-			.imageInfo = imageInfo,
-			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
-			.usage = ImageCreateInfo::Usage::COLOR
-			});
-
-
-	m_depthImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
-			.imageInfo = m_depthImageInfo,
-			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
-			.usage = ImageCreateInfo::Usage::DEPTH
-		});
-	LOG_CORE_INFO("Create m_swapchain");
-}
-
-void Renderer::destroySwapchain()
-{
-	for (int i = 0; i < m_swapchain.imageViews.size(); i++)
-	{
-		vkDestroyFramebuffer(m_graphicsDevice->m_device, m_swapchain.framebuffers[i], nullptr);
-		vkDestroyImageView(m_graphicsDevice->m_device, m_swapchain.imageViews[i], nullptr);
-	}
-	vkDestroyRenderPass(m_graphicsDevice->m_device, m_imguiPass, nullptr);
-	vkDestroySwapchainKHR(m_graphicsDevice->m_device, m_swapchain.swapchain, nullptr);
-
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		ResourceManager::ptr->DestroyImage(m_renderImage);
-	};
-	LOG_CORE_INFO("Destroy Swapchain");
-}
-
-void Renderer::recreateSwapchain()
-{
-	ZoneScoped;
-	
-	SDL_Event e;
-	int flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_graphicsDevice->m_window->GetWindowPointer()));
-	bool minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
-	while (minimized)
-	{
-		flags = SDL_GetWindowFlags(reinterpret_cast<SDL_Window*>(m_graphicsDevice->m_window->GetWindowPointer()));
-		minimized = (flags & SDL_WINDOW_MINIMIZED) ? true : false;
-		SDL_WaitEvent(&e);
-	}
-
-	vkDeviceWaitIdle(m_graphicsDevice->m_device);
-
-	destroySwapchain();
-	createSwapchain();
-	initImguiRenderpass();
-	initImguiRenderImages();
-}
-
-
 void Renderer::initImguiRenderpass() 
 {
 	const VkAttachmentDescription color_attachment = {
-		.format = m_swapchain.imageFormat,
+		.format = m_graphicsDevice->m_swapchain.imageFormat,
 		.samples = VK_SAMPLE_COUNT_1_BIT,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -632,26 +514,26 @@ void Renderer::initImguiRenderpass()
 		.layers = 1,
 	};
 
-	const int m_swapchain_imagecount = static_cast<int>(m_swapchain.images.size());
-	m_swapchain.framebuffers = std::vector<VkFramebuffer>(m_swapchain_imagecount);
+	const int m_swapchain_imagecount = static_cast<int>(m_graphicsDevice->m_swapchain.images.size());
+	m_graphicsDevice->m_swapchain.framebuffers = std::vector<VkFramebuffer>(m_swapchain_imagecount);
 
 	//create m_framebuffers for each of the m_swapchain image views
 	for (int i = 0; i < m_swapchain_imagecount; i++)
 	{
 
-		VkImageView attachment = m_swapchain.imageViews[i];
+		VkImageView attachment = m_graphicsDevice->m_swapchain.imageViews[i];
 
 		fb_info.pAttachments = &attachment;
 		fb_info.attachmentCount = 1;
 
-		VK_CHECK(vkCreateFramebuffer(m_graphicsDevice->m_device, &fb_info, nullptr, &m_swapchain.framebuffers[i]));
+		VK_CHECK(vkCreateFramebuffer(m_graphicsDevice->m_device, &fb_info, nullptr, &m_graphicsDevice->m_swapchain.framebuffers[i]));
 	}
 }
 
 void Renderer::initImguiRenderImages()
 {
-	m_imguiRenderTexture = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-	m_imguiDepthTexture = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_imguiRenderTexture = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_graphicsDevice->m_renderImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_imguiDepthTexture = ImGui_ImplVulkan_AddTexture(m_defaultSampler, ResourceManager::ptr->GetImage(m_graphicsDevice->m_depthImage).imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	Editor::ViewportTexture = m_imguiRenderTexture;
 	Editor::ViewportDepthTexture = m_imguiDepthTexture;
@@ -789,37 +671,6 @@ void Renderer::initImgui()
 		vkDestroyDescriptorPool(m_graphicsDevice->m_device, imguiPool, nullptr);
 		ImGui_ImplVulkan_Shutdown();
 		});
-}
-
-void Renderer::initSyncStructures()
-{
-	ZoneScoped;
-
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		const VkFenceCreateInfo fenceCreateInfo = {
-			.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = VK_FENCE_CREATE_SIGNALED_BIT
-		};
-
-		vkCreateFence(m_graphicsDevice->m_device, &fenceCreateInfo, nullptr, &m_frame[i].renderFen);
-
-		const VkSemaphoreCreateInfo semaphoreCreateInfo = {
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0
-		};
-
-		vkCreateSemaphore(m_graphicsDevice->m_device, &semaphoreCreateInfo, nullptr, &m_frame[i].presentSem);
-		vkCreateSemaphore(m_graphicsDevice->m_device, &semaphoreCreateInfo, nullptr, &m_frame[i].renderSem);
-	}
-
-
-	const VkFenceCreateInfo uploadFenceCreateInfo = VulkanInit::fenceCreateInfo();
-	vkCreateFence(m_graphicsDevice -> m_device, &uploadFenceCreateInfo, nullptr, &m_graphicsDevice -> m_uploadContext.uploadFence);
-
-
 }
 
 
@@ -995,31 +846,16 @@ void Renderer::deinit()
 {
 	ZoneScoped;
 
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		vkWaitForFences(m_graphicsDevice->m_device, 1, &m_frame[i].renderFen, true, 1000000000);
-	}
+	m_graphicsDevice->WaitIdle();
 
 	m_graphicsDevice->m_instanceDeletionQueue.flush();
 
-	destroySwapchain();
 
 	m_pipelineManager->Deinit();
 	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_scenePool, nullptr);
 	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_sceneSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_globalPool, nullptr);
 	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_globalSetLayout, nullptr);
-
-	vkDestroyFence(m_graphicsDevice->m_device, m_graphicsDevice->m_uploadContext.uploadFence, nullptr);
-
-	for (int i = 0; i < FRAME_OVERLAP; ++i)
-	{
-		vkDestroySemaphore(m_graphicsDevice->m_device, m_frame[i].presentSem, nullptr);
-		vkDestroySemaphore(m_graphicsDevice->m_device, m_frame[i].renderSem, nullptr);
-		vkDestroyFence(m_graphicsDevice->m_device, m_frame[i].renderFen, nullptr);
-	}
-
-
 }
 
 Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)
