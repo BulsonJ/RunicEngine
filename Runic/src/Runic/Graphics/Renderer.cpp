@@ -44,8 +44,6 @@ void Renderer::init(Device* device)
 
 	m_graphicsDevice = device;
 
-	m_pipelineManager = std::make_unique<PipelineManager>(m_graphicsDevice->m_device);
-
 
 	initShaders();
 	initShaderData();
@@ -155,7 +153,6 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		}
 	}
 
-
 	const MaterialType* lastMaterialType = nullptr;
 	const RenderMesh* lastMesh = nullptr;
 	for (int i = 0; i < COUNT + 1; ++i)
@@ -173,7 +170,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
 			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
 
-			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineManager->GetPipeline(currentMaterialType->pipeline));
+			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsDevice->m_pipelineManager->GetPipeline(currentMaterialType->pipeline));
 
 			lastMaterialType = currentMaterialType;
 		}
@@ -519,24 +516,26 @@ void Renderer::initShaders()
 	std::vector<VkPushConstantRange> pushConstants = { defaultPushConstants };
 	std::vector<VkDescriptorSetLayout> setLayouts = { m_globalSetLayout, m_sceneSetLayout };
 
-	VkPipelineLayout defaultPipelineLayout = m_pipelineManager->CreatePipelineLayout(setLayouts, pushConstants);
+	VkPipelineLayout defaultPipelineLayout = m_graphicsDevice->m_pipelineManager->CreatePipelineLayout(setLayouts, pushConstants);
 
 	const std::string defaultMaterialName = "defaultMaterial";
-	PipelineHandle defaultMat = m_pipelineManager->CreatePipeline({
+	PipelineHandle defaultMat = m_graphicsDevice->m_pipelineManager->CreatePipeline({
 		.name = defaultMaterialName,
 		.pipelineLayout = defaultPipelineLayout,
 		.vertexShader = "../../assets/shaders/default.vert.spv",
 		.fragmentShader = "../../assets/shaders/default.frag.spv",
+		.vertexInputDesc = RenderMesh::getVertexDescription(),
 	});
 	m_materials[defaultMaterialName] = { .pipeline = defaultMat, .pipelineLayout = defaultPipelineLayout };
 	LOG_CORE_INFO("Material created: " + defaultMaterialName);
 
 	const std::string skyboxMaterialName = "skyboxMaterial";
-	PipelineHandle skyboxMat = m_pipelineManager->CreatePipeline({
+	PipelineHandle skyboxMat = m_graphicsDevice->m_pipelineManager->CreatePipeline({
 		.name = skyboxMaterialName,
 		.pipelineLayout = defaultPipelineLayout,
 		.vertexShader = "../../assets/shaders/skybox.vert.spv",
 		.fragmentShader = "../../assets/shaders/skybox.frag.spv",
+		.vertexInputDesc = RenderMesh::getVertexDescription(),
 		.enableDepthWrite = false,
 		});
 	m_materials[skyboxMaterialName] = { .pipeline = skyboxMat, .pipelineLayout = defaultPipelineLayout };
@@ -551,8 +550,6 @@ void Renderer::deinit()
 
 	m_graphicsDevice->m_instanceDeletionQueue.flush();
 
-
-	m_pipelineManager->Deinit();
 	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_scenePool, nullptr);
 	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_sceneSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_globalPool, nullptr);
@@ -931,90 +928,4 @@ VertexInputDescription RenderMesh::getVertexDescription()
 	description.attributes.push_back(tangentAttribute);
 
 	return description;
-}
-
-void Runic::PipelineManager::Deinit()
-{
-	for (const VkPipelineLayout layout : m_pipelineLayouts)
-	{
-		vkDestroyPipelineLayout(m_device, layout, nullptr);
-	}
-	for (const PipelineInfo pipeline : m_pipelines)
-	{
-		vkDestroyPipeline(m_device, pipeline.pipeline, nullptr);
-	}
-}
-
-VkPipeline Runic::PipelineManager::GetPipeline(PipelineHandle handle)
-{
-	return m_pipelines.at(handle).pipeline;
-}
-
-VkPipelineLayout Runic::PipelineManager::CreatePipelineLayout(std::vector<VkDescriptorSetLayout> descLayouts, std::vector<VkPushConstantRange> pushConstants)
-{
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo = VulkanInit::pipelineLayoutCreateInfo();
-	pipelineLayoutInfo.setLayoutCount = descLayouts.size();
-	pipelineLayoutInfo.pSetLayouts = descLayouts.data();
-	pipelineLayoutInfo.pushConstantRangeCount = pushConstants.size();
-	pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
-	VkPipelineLayout pipelineLayout {};
-	VK_CHECK(vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &pipelineLayout));
-	m_pipelineLayouts.push_back(pipelineLayout);
-	return pipelineLayout;
-}
-
-PipelineHandle Runic::PipelineManager::CreatePipeline(PipelineInfo info)
-{
-	uint32_t index = (uint32_t)m_pipelines.size();
-	m_pipelines.push_back(info);
-	m_pipelines.back().pipeline = createPipelineInternal(info);
-	return index;
-}
-
-void Runic::PipelineManager::RecompilePipelines()
-{
-	for (PipelineInfo& info : m_pipelines)
-	{
-		vkDestroyPipeline(m_device, info.pipeline, nullptr);
-
-		info.pipeline = createPipelineInternal(info);
-	}
-}
-
-VkPipeline Runic::PipelineManager::createPipelineInternal(PipelineInfo info)
-{
-	auto shaderLoadFunc = [this](const std::string& fileLoc)->VkShaderModule {
-		std::optional<VkShaderModule> shader = PipelineBuild::loadShaderModule(m_device, fileLoc.c_str());
-		assert(shader.has_value());
-		LOG_CORE_INFO("Shader successfully loaded" + fileLoc);
-		return shader.value();
-	};
-
-	VkShaderModule vertexShader = shaderLoadFunc(info.vertexShader);
-	VkShaderModule fragShader = shaderLoadFunc(info.fragmentShader);
-
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo = VulkanInit::vertexInputStateCreateInfo();
-	VertexInputDescription vertexDescription = RenderMesh::getVertexDescription();
-	vertexInputInfo.pVertexAttributeDescriptions = vertexDescription.attributes.data();
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexDescription.attributes.size());
-	vertexInputInfo.pVertexBindingDescriptions = vertexDescription.bindings.data();
-	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexDescription.bindings.size());
-
-	PipelineBuild::BuildInfo buildInfo{
-		.colorBlendAttachment = VulkanInit::colorBlendAttachmentState(),
-		.depthStencil = VulkanInit::depthStencilStateCreateInfo(true, info.enableDepthWrite),
-		.pipelineLayout = info.pipelineLayout,
-		.rasterizer = VulkanInit::rasterizationStateCreateInfo(VK_POLYGON_MODE_FILL),
-		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),
-					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragShader)},
-		.vertexInputInfo = vertexInputInfo,
-		.colorAttachmentFormats = {DEFAULT_FORMAT},
-		.depthAttachmentFormat = {DEPTH_FORMAT}
-	};
-
-	VkPipeline pipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);
-
-	vkDestroyShaderModule(m_device, vertexShader, nullptr);
-	vkDestroyShaderModule(m_device, fragShader, nullptr);
-	return pipeline;
 }

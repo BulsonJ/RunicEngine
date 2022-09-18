@@ -51,10 +51,13 @@ void Device::init(Window* window)
 	initImguiRenderpass();
 	initImgui();
 	initImguiRenderImages();
+
+	m_pipelineManager = std::make_unique<PipelineManager>(m_device);
 }
 
 void Device::deinit()
 {
+	m_pipelineManager->Deinit();
 	delete ResourceManager::ptr;
 
 	vkDeviceWaitIdle(m_device);

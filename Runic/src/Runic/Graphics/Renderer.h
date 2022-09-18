@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "Runic/Graphics/Internal/PipelineBuilder.h"
+#include "Runic/Graphics/Internal/PipelineManager.h"
 #include "Runic/Graphics/ResourceManager.h"
 
 #include "Runic/Graphics/Device.h"
@@ -85,45 +86,6 @@ namespace Runic
 		};
 	}
 
-	struct VertexInputDescription
-	{
-		std::vector<VkVertexInputBindingDescription> bindings;
-		std::vector<VkVertexInputAttributeDescription> attributes;
-		VkPipelineVertexInputStateCreateFlags flags = 0;
-	};
-
-	struct PipelineInfo
-	{
-		std::string name;
-		VkPipeline pipeline{};
-		VkPipelineLayout pipelineLayout{};
-
-		std::string vertexShader;
-		std::string fragmentShader;
-
-		bool enableDepthWrite {true};
-	};
-
-	typedef uint32_t PipelineHandle;
-
-	class PipelineManager
-	{
-	public:
-		PipelineManager(VkDevice device) : m_device(device){}
-		void Deinit();
-		VkPipeline GetPipeline(PipelineHandle handle);
-		VkPipelineLayout CreatePipelineLayout(std::vector<VkDescriptorSetLayout> descLayouts,
-											  std::vector<VkPushConstantRange> pushConstants);
-		PipelineHandle CreatePipeline(PipelineInfo info);
-		void RecompilePipelines();
-	private:
-		VkPipeline createPipelineInternal(PipelineInfo info);
-		VkDevice m_device;
-		std::string m_sourceFolder;
-		std::vector<VkPipelineLayout> m_pipelineLayouts;
-		std::vector<PipelineInfo> m_pipelines;
-	};
-
 	struct RenderMesh
 	{
 		Runic::MeshDesc meshDesc;
@@ -184,8 +146,6 @@ namespace Runic
 
 		Device* m_graphicsDevice;
 		RenderFrameObjects m_frame[FRAME_OVERLAP];
-
-		std::unique_ptr<PipelineManager> m_pipelineManager;
 
 		VkDescriptorSetLayout m_globalSetLayout;
 		VkDescriptorPool m_globalPool;

@@ -6,9 +6,13 @@
 #include <vk_mem_alloc.h>
 #include <imgui.h>
 
+#include <memory>
+
 // internal
 #include "Runic/Structures/DeletionQueue.h"
+#include "Runic/Graphics/Internal/PipelineManager.h"
 #include "Runic/Graphics/ResourceManager.h"
+
 
 constexpr unsigned int FRAME_OVERLAP = 2U;
 
@@ -108,6 +112,8 @@ namespace Runic
 		ImageHandle m_depthImage;
 
 		VkSampler m_defaultSampler;
+
+		std::unique_ptr<PipelineManager> m_pipelineManager;
 
 	private:
 		void initVulkan();
