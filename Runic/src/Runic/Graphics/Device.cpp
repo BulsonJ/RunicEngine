@@ -179,8 +179,7 @@ void Device::AddImGuiToCommandBuffer()
 
 void Device::EndFrame()
 {
-	FrameMark;
-	m_frameNumber++;
+
 }
 
 void Device::Present()
@@ -196,6 +195,9 @@ void Device::Present()
 	};
 
 	vkQueuePresentKHR(m_graphics.queue, &presentInfo);
+
+	FrameMark;
+	m_frameNumber++;
 }
 
 void Device::WaitIdle()

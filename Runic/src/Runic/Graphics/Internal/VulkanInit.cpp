@@ -299,7 +299,6 @@ VkRenderPassBeginInfo VulkanInit::renderpassBeginInfo(VkRenderPass renderPass, V
 		.framebuffer = framebuffer,
 		.clearValueCount = 1,
 		.pClearValues = nullptr,
-
 	};
 
 	info.renderArea.offset.x = 0;
