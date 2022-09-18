@@ -1,8 +1,10 @@
 #pragma once
 #include "Runic/Window.h"
 
+// external
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+#include <imgui.h>
 
 // internal
 #include "Runic/Structures/DeletionQueue.h"
@@ -60,11 +62,14 @@ namespace Runic
 		void deinit();
 
 		void BeginFrame();
+		void AddImGuiToCommandBuffer();
 		void EndFrame();
 		void Present();
 
 		void WaitIdle();
 		void WaitRender();
+
+		void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 		// Move to private once device functions setup
 		[[nodiscard]] int getCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
@@ -93,10 +98,16 @@ namespace Runic
 		RenderFrame m_frame[FRAME_OVERLAP];
 		int m_frameNumber{};
 
+		VkRenderPass m_imguiPass;
+		ImTextureID m_imguiRenderTexture;
+		ImTextureID m_imguiDepthTexture;
+
 		// Create render target function that caches these, rebuilds them on recreate swapchain?
 		// Aren't stricly tied to device, just Renderer that is really deciding to create them as an extra implementation detail
 		ImageHandle m_renderImage;
 		ImageHandle m_depthImage;
+
+		VkSampler m_defaultSampler;
 
 	private:
 		void initVulkan();
@@ -108,5 +119,9 @@ namespace Runic
 		void recreateSwapchain();
 		void destroySwapchain();
 		void initSyncStructures();
+
+		void initImguiRenderpass();
+		void initImgui();
+		void initImguiRenderImages();
 	};
 }

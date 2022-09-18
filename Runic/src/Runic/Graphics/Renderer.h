@@ -171,10 +171,6 @@ namespace Runic
 		TextureHandle uploadTexture(const Texture& texture);
 		void setSkybox(TextureHandle texture);
 	private:
-		void initImguiRenderpass();
-
-		void initImgui();
-		void initImguiRenderImages();
 		void initShaders();
 
 		void initShaderData();
@@ -184,15 +180,10 @@ namespace Runic
 		ImageHandle uploadTextureInternal(const Runic::Texture& image);
 		ImageHandle uploadTextureInternalCubemap(const Runic::Texture& image);
 
-		void immediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 		[[nodiscard]] RenderFrameObjects& getCurrentFrame() { return m_frame[m_graphicsDevice->getCurrentFrameNumber()]; }
 
 		Device* m_graphicsDevice;
 		RenderFrameObjects m_frame[FRAME_OVERLAP];
-
-		VkRenderPass m_imguiPass;
-		ImTextureID m_imguiRenderTexture;
-		ImTextureID m_imguiDepthTexture;
 
 		std::unique_ptr<PipelineManager> m_pipelineManager;
 
@@ -207,7 +198,6 @@ namespace Runic
 		Slotmap<RenderMesh> m_meshes;
 		std::unordered_map<std::string, MaterialType> m_materials;
 		Slotmap<ImageHandle> m_bindlessImages;
-		VkSampler m_defaultSampler;
 
 		RenderableComponent m_skybox;
 		MeshHandle m_skyboxMesh;
