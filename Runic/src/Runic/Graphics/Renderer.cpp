@@ -2,10 +2,7 @@
 
 #include <vk_mem_alloc.h>
 
-#include <SDL.h>
-#include <SDL_vulkan.h>
 #include <vulkan/vulkan.h>
-#include <VkBootstrap.h>
 
 #include <Tracy.hpp>
 #include <common/TracySystem.hpp>
@@ -24,7 +21,6 @@
 #include "Runic/Graphics/Internal/VulkanInit.h"
 #include "Runic/Editor.h"
 #include "Runic/Log.h"
-#include "Renderer.h"
 
 #include "Runic/Scene/Components/TransformComponent.h"
 
