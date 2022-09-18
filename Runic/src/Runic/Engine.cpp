@@ -10,13 +10,13 @@
 
 using namespace Runic;
 
-void Engine::init() {
+void Engine::Init() {
 	ZoneScoped;
 
 	Log::Init();
 	m_window.Init(WindowProps{ .title = "Runic Engine",.width = 1920U, .height = 1080U });
-	m_device.init(&m_window);
-	m_rend.init(&m_device);
+	m_device.Init(&m_window);
+	m_rend.Init(&m_device);
 
 	setupScene();
 }
@@ -49,8 +49,8 @@ void Engine::setupScene() {
 	};
 	Texture skyboxImage;
 	TextureUtil::LoadCubemapFromFile(skyboxImagePaths, { .type = TextureDesc::Type::TEXTURE_CUBEMAP }, skyboxImage);
-	const TextureHandle skybox = m_rend.uploadTexture(skyboxImage);
-	m_rend.setSkybox(skybox);
+	const TextureHandle skybox = m_rend.UploadTexture(skyboxImage);
+	m_rend.SetSkybox(skybox);
 	skyboxImage.destroy();
 
 	std::shared_ptr<Entity> sun = m_scene.CreateEntity();
@@ -140,14 +140,14 @@ void Engine::run()
 		{
 			m_obj->GetComponent<TransformComponent>().rotation = m_obj->GetComponent<TransformComponent>().rotation + glm::vec3{0.0f, 0.001f, 0.0f};
 		}
-		m_rend.draw(m_scene.m_camera.get());
+		m_rend.Draw(m_scene.m_camera.get());
 	}
 }
 
-void Engine::deinit()
+void Engine::Deinit()
 {
 	ZoneScoped;
-	m_rend.deinit();
+	m_rend.Deinit();
 	m_window.Deinit();
 }
 

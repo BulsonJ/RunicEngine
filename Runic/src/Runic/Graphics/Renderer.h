@@ -123,15 +123,15 @@ namespace Runic
 	class Renderer
 	{
 	public:
-		void init(Device* device);
-		void deinit();
+		void Init(Device* device);
+		void Deinit();
 
 		// Public rendering API
-		void draw(Camera* const camera);
+		void Draw(Camera* const camera);
 		void GiveRenderables(const std::vector<std::shared_ptr<Runic::Entity>>& entities);
-		MeshHandle uploadMesh(const MeshDesc& mesh);
-		TextureHandle uploadTexture(const Texture& texture);
-		void setSkybox(TextureHandle texture);
+		MeshHandle UploadMesh(const MeshDesc& mesh);
+		TextureHandle UploadTexture(const Texture& texture);
+		void SetSkybox(TextureHandle texture);
 	private:
 		void initShaders();
 
@@ -142,7 +142,7 @@ namespace Runic
 		ImageHandle uploadTextureInternal(const Runic::Texture& image);
 		ImageHandle uploadTextureInternalCubemap(const Runic::Texture& image);
 
-		[[nodiscard]] RenderFrameObjects& getCurrentFrame() { return m_frame[m_graphicsDevice->getCurrentFrameNumber()]; }
+		[[nodiscard]] RenderFrameObjects& GetCurrentFrame() { return m_frame[m_graphicsDevice->GetCurrentFrameNumber()]; }
 
 		Device* m_graphicsDevice;
 		RenderFrameObjects m_frame[FRAME_OVERLAP];

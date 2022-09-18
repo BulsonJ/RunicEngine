@@ -4,7 +4,7 @@
 int main()
 {
 	Runic::Engine eng;
-	eng.init();
+	eng.Init();
 	eng.run();
-	eng.deinit();
+	eng.Deinit();
 }

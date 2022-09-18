@@ -12,9 +12,9 @@ namespace Runic
 	class Engine
 	{
 	public:
-		void init();
+		void Init();
 		void run();
-		void deinit();
+		void Deinit();
 	private:
 		void setupScene();
 

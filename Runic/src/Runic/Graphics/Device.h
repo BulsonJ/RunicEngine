@@ -62,8 +62,8 @@ namespace Runic
 	class Device
 	{
 	public:
-		void init(Window* window);
-		void deinit();
+		void Init(Window* window);
+		void Deinit();
 
 		bool BeginFrame();
 		void AddImGuiToCommandBuffer();
@@ -73,11 +73,24 @@ namespace Runic
 		void WaitIdle();
 		void WaitRender();
 
+		/** Functions:
+			- Resources
+				-Buffers
+				-Images
+				-Samplers
+				-Renderpass?
+			- Swapchain/Rendering
+				-Get backbuffer
+				-Barriers
+			- Set debug name
+		
+		*/
+
 		void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 		// Move to private once device functions setup
-		[[nodiscard]] int getCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
-		[[nodiscard]] RenderFrame& getCurrentFrame() { return m_frame[getCurrentFrameNumber()]; }
+		[[nodiscard]] int GetCurrentFrameNumber() { return m_frameNumber % FRAME_OVERLAP; }
+		[[nodiscard]] RenderFrame& GetCurrentFrame() { return m_frame[GetCurrentFrameNumber()]; }
 
 		Window* m_window;
 

@@ -60,7 +60,7 @@ std::optional<std::vector<RenderableComponent>> ModelLoader::LoadModelFromObj(co
 			Texture objectTexture;
 			const std::string textureName = (directory + "/" + materials[m].diffuse_texname);
 			TextureUtil::LoadTextureFromFile(textureName.c_str(), { .format = TextureDesc::Format::DEFAULT }, objectTexture);
-			const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
+			const TextureHandle objectTextureHandle = m_rend->UploadTexture(objectTexture);
 			loadedTextures[m] = objectTextureHandle;
 			LOG_CORE_TRACE("Texture Uploaded: " + textureName);
 		}
@@ -69,7 +69,7 @@ std::optional<std::vector<RenderableComponent>> ModelLoader::LoadModelFromObj(co
 			Texture objectTexture;
 			const std::string textureName = (directory + "/" + materials[m].ambient_texname);
 			TextureUtil::LoadTextureFromFile(textureName.c_str(), { .format = TextureDesc::Format::NORMAL }, objectTexture);
-			const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
+			const TextureHandle objectTextureHandle = m_rend->UploadTexture(objectTexture);
 			loadedNormalTextures[m] = objectTextureHandle;
 			LOG_CORE_TRACE("Texture Uploaded: " + textureName);
 		}
@@ -122,7 +122,7 @@ std::optional<std::vector<RenderableComponent>> ModelLoader::LoadModelFromObj(co
 			index_offset += fv;
 		}
 		RenderableComponent newRenderObject;
-		newRenderObject.meshHandle = m_rend->uploadMesh(newMesh);
+		newRenderObject.meshHandle = m_rend->UploadMesh(newMesh);
 		newRenderObject.textureHandle = loadedTextures[shapes[s].mesh.material_ids[0]];
 		newRenderObject.normalHandle = loadedNormalTextures[shapes[s].mesh.material_ids[0]];
 		newRenderObjects.push_back(newRenderObject);
@@ -173,7 +173,7 @@ std::optional<std::vector<RenderableComponent>> Runic::ModelLoader::LoadModelFro
 		const void* pixels = reinterpret_cast<const void*>(img.image.data());
 		objectTexture.ptr[0] = (void*)pixels;
 		//objectTexture.ptr[0] = imgPath.image.data();
-		const TextureHandle objectTextureHandle = m_rend->uploadTexture(objectTexture);
+		const TextureHandle objectTextureHandle = m_rend->UploadTexture(objectTexture);
 		loadedTextures.push_back(objectTextureHandle);
 		//LOG_CORE_TRACE("Texture Uploaded: " + textureName);
 	}
@@ -271,7 +271,7 @@ std::optional<std::vector<RenderableComponent>> Runic::ModelLoader::LoadModelFro
 			const int normIndex = getTextureIndex(modelMat.normalTexture.index);
 			const int emissiveIndex = getTextureIndex(modelMat.emissiveTexture.index);
 			RenderableComponent newRenderObject;
-			newRenderObject.meshHandle = m_rend->uploadMesh(mesh);
+			newRenderObject.meshHandle = m_rend->UploadMesh(mesh);
 			newRenderObject.textureHandle = colIndex >= 0 ? loadedTextures[colIndex] : 0;
 			newRenderObject.normalHandle = normIndex >= 0 ? loadedTextures[normIndex] : 0;
 			newRenderObject.roughnessHandle = roughnessIndex >= 0 ? loadedTextures[roughnessIndex] : 0;

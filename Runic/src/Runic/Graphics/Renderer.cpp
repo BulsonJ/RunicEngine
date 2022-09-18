@@ -38,7 +38,7 @@ using namespace Runic;
 	} while (0)
 
 
-void Renderer::init(Device* device)
+void Renderer::Init(Device* device)
 {
 	ZoneScoped;
 
@@ -53,7 +53,7 @@ void Renderer::initShaderData()
 {
 	ZoneScoped;
 
-	m_skybox.meshHandle = uploadMesh(MeshDesc::GenerateSkyboxCube());
+	m_skybox.meshHandle = UploadMesh(MeshDesc::GenerateSkyboxCube());
 	m_skybox.textureHandle = 0;
 }
 
@@ -66,9 +66,9 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	GPUData::DrawData* drawDataSSBO = (GPUData::DrawData*)ResourceManager::ptr->GetBuffer(getCurrentFrame().drawDataBuffer).ptr;
-	GPUData::Transform* objectSSBO = (GPUData::Transform*)ResourceManager::ptr->GetBuffer(getCurrentFrame().transformBuffer).ptr;
-	GPUData::Material* materialSSBO = (GPUData::Material*)ResourceManager::ptr->GetBuffer(getCurrentFrame().materialBuffer).ptr;
+	GPUData::DrawData* drawDataSSBO = (GPUData::DrawData*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().drawDataBuffer).ptr;
+	GPUData::Transform* objectSSBO = (GPUData::Transform*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().transformBuffer).ptr;
+	GPUData::Material* materialSSBO = (GPUData::Material*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().materialBuffer).ptr;
 
 	for (int i = 0; i < COUNT; ++i)
 	{
@@ -114,12 +114,12 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		//slot 0 - camera
 	//const float rotationSpeed = 0.5f;
 	//camera.view = glm::rotate(camera.view, (m_frameNumber / 120.0f) * rotationSpeed, UP_DIR);
-	GPUData::Camera* cameraSSBO = (GPUData::Camera*)ResourceManager::ptr->GetBuffer(getCurrentFrame().cameraBuffer).ptr;
+	GPUData::Camera* cameraSSBO = (GPUData::Camera*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().cameraBuffer).ptr;
 	cameraSSBO->view = m_currentCamera->BuildViewMatrix();
 	cameraSSBO->proj = m_currentCamera->BuildProjMatrix();
 	cameraSSBO->pos = {m_currentCamera->GetPosition(), 0.0f};
 		//slot 1 - directionalLight
-	GPUData::DirectionalLight* dirLightSSBO = (GPUData::DirectionalLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().dirLightBuffer).ptr;
+	GPUData::DirectionalLight* dirLightSSBO = (GPUData::DirectionalLight*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().dirLightBuffer).ptr;
 	if (m_entities_with_lights.count(LightComponent::LightType::Directional) > 0)
 	{
 		const LightComponent* dirLight = &m_entities_with_lights[LightComponent::LightType::Directional][0]->GetComponent<LightComponent>();
@@ -133,7 +133,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		LOG_CORE_WARN("No directional light passed to renderer.");
 		*dirLightSSBO = GPUData::DirectionalLight();
 	}
-	GPUData::PointLight* pointLightSSBO = (GPUData::PointLight*)ResourceManager::ptr->GetBuffer(getCurrentFrame().pointLightBuffer).ptr;
+	GPUData::PointLight* pointLightSSBO = (GPUData::PointLight*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().pointLightBuffer).ptr;
 	if (m_entities_with_lights.count(LightComponent::LightType::Point) > 0)
 	{
 		if (int numberOfPointLights = m_entities_with_lights[LightComponent::LightType::Point].size(); numberOfPointLights > 0)
@@ -167,8 +167,8 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		const MaterialType* currentMaterialType{ i != COUNT ? &m_materials["defaultMaterial"] : &m_materials["skyboxMaterial"]};
 		if (currentMaterialType != lastMaterialType)
 		{
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 0, 1, &getCurrentFrame().globalSet, 0, nullptr);
-			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 1, 1, &getCurrentFrame().sceneSet, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 0, 1, &GetCurrentFrame().globalSet, 0, nullptr);
+			vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, currentMaterialType->pipelineLayout, 1, 1, &GetCurrentFrame().sceneSet, 0, nullptr);
 
 			vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsDevice->m_pipelineManager->GetPipeline(currentMaterialType->pipeline));
 
@@ -208,7 +208,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 	}
 }
 
-void Renderer::draw(Camera* const camera)
+void Renderer::Draw(Camera* const camera)
 {
 	ZoneScoped;
 
@@ -219,7 +219,7 @@ void Renderer::draw(Camera* const camera)
 		return;
 	}
 
-	const VkCommandBuffer cmd = m_graphicsDevice->m_graphics.commands[m_graphicsDevice->getCurrentFrameNumber()].buffer;
+	const VkCommandBuffer cmd = m_graphicsDevice->m_graphics.commands[m_graphicsDevice->GetCurrentFrameNumber()].buffer;
 
 	const VkCommandBufferBeginInfo cmdBeginInfo = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -343,15 +343,15 @@ void Renderer::draw(Camera* const camera)
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
 		.pNext = nullptr,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &m_graphicsDevice->getCurrentFrame().presentSem,
+		.pWaitSemaphores = &m_graphicsDevice->GetCurrentFrame().presentSem,
 		.pWaitDstStageMask = &waitStage,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &cmd,
 		.signalSemaphoreCount = 1,
-		.pSignalSemaphores = &m_graphicsDevice->getCurrentFrame().renderSem,
+		.pSignalSemaphores = &m_graphicsDevice->GetCurrentFrame().renderSem,
 	};
 
-	vkQueueSubmit(m_graphicsDevice->m_graphics.queue, 1, &submit, m_graphicsDevice->getCurrentFrame().renderFen);
+	vkQueueSubmit(m_graphicsDevice->m_graphics.queue, 1, &submit, m_graphicsDevice->GetCurrentFrame().renderFen);
 
 	m_graphicsDevice->EndFrame();
 	m_graphicsDevice->Present();
@@ -542,7 +542,7 @@ void Renderer::initShaders()
 	LOG_CORE_INFO("Material created: " + skyboxMaterialName);
 }
 
-void Renderer::deinit() 
+void Renderer::Deinit() 
 {
 	ZoneScoped;
 
@@ -554,7 +554,7 @@ void Renderer::deinit()
 	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_globalSetLayout, nullptr);
 }
 
-Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)
+Runic::MeshHandle Renderer::UploadMesh(const Runic::MeshDesc& mesh)
 {
 	ZoneScoped;
 	RenderMesh renderMesh {.meshDesc = mesh};
@@ -624,7 +624,7 @@ Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)
 	return m_meshes.add(renderMesh);
 }
 
-Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
+Runic::TextureHandle Renderer::UploadTexture(const Runic::Texture& texture)
 {
 	if (texture.ptr == nullptr)
 	{
@@ -658,7 +658,7 @@ Runic::TextureHandle Renderer::uploadTexture(const Runic::Texture& texture)
 	return bindlessHandle;
 }
 
-void Runic::Renderer::setSkybox(TextureHandle texture)
+void Runic::Renderer::SetSkybox(TextureHandle texture)
 {
 	m_skybox.textureHandle = texture;
 }

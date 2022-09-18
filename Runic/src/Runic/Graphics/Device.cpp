@@ -17,7 +17,6 @@
 #include "Runic/Graphics/Internal/VulkanInit.h"
 #include "Runic/Log.h"
 
-
 #define VK_CHECK(x)                                                 \
 	do                                                              \
 	{                                                               \
@@ -31,7 +30,7 @@
 
 using namespace Runic;
 
-void Device::init(Window* window)
+void Device::Init(Window* window)
 {
 	m_window = window;
 
@@ -55,7 +54,7 @@ void Device::init(Window* window)
 	m_pipelineManager = std::make_unique<PipelineManager>(m_device);
 }
 
-void Device::deinit()
+void Device::Deinit()
 {
 	m_pipelineManager->Deinit();
 	delete ResourceManager::ptr;
@@ -88,9 +87,9 @@ void Device::deinit()
 
 bool Device::BeginFrame()
 {
-	VK_CHECK(vkWaitForFences(m_device, 1, &getCurrentFrame().renderFen, true, 1000000000));
+	VK_CHECK(vkWaitForFences(m_device, 1, &GetCurrentFrame().renderFen, true, 1000000000));
 
-	VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain.swapchain, 1000000000, getCurrentFrame().presentSem, nullptr, &m_currentSwapchainImage);
+	VkResult result = vkAcquireNextImageKHR(m_device, m_swapchain.swapchain, 1000000000, GetCurrentFrame().presentSem, nullptr, &m_currentSwapchainImage);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || m_dirtySwapchain)
 	{
 		m_dirtySwapchain = false;
@@ -102,8 +101,8 @@ bool Device::BeginFrame()
 		throw std::runtime_error("failed to acquire swap chain image!");
 	}
 
-	VK_CHECK(vkResetFences(m_device, 1, &getCurrentFrame().renderFen));
-	VK_CHECK(vkResetCommandBuffer(m_graphics.commands[getCurrentFrameNumber()].buffer, 0));
+	VK_CHECK(vkResetFences(m_device, 1, &GetCurrentFrame().renderFen));
+	VK_CHECK(vkResetCommandBuffer(m_graphics.commands[GetCurrentFrameNumber()].buffer, 0));
 
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
@@ -115,7 +114,7 @@ bool Device::BeginFrame()
 
 void Device::AddImGuiToCommandBuffer()
 {
-	const VkCommandBuffer cmd = m_graphics.commands[getCurrentFrameNumber()].buffer;
+	const VkCommandBuffer cmd = m_graphics.commands[GetCurrentFrameNumber()].buffer;
 
 	const VkImageMemoryBarrier2 imgMemBarrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -191,7 +190,7 @@ void Device::Present()
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.pNext = nullptr,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &getCurrentFrame().renderSem,
+		.pWaitSemaphores = &GetCurrentFrame().renderSem,
 		.swapchainCount = 1,
 		.pSwapchains = &m_swapchain.swapchain,
 		.pImageIndices = &m_currentSwapchainImage,
