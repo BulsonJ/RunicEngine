@@ -548,8 +548,6 @@ void Renderer::deinit()
 
 	m_graphicsDevice->WaitIdle();
 
-	m_graphicsDevice->m_instanceDeletionQueue.flush();
-
 	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_scenePool, nullptr);
 	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_sceneSetLayout, nullptr);
 	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_globalPool, nullptr);
