@@ -56,5 +56,8 @@ namespace Runic
 		Runic::UploadContext m_uploadContext;
 	private:
 		void initVulkan();
+
+		void initGraphicsCommands();
+		void initComputeCommands();
 	};
 }

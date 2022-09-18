@@ -194,8 +194,6 @@ namespace Runic
 		void recreateSwapchain();
 		void destroySwapchain();
 
-		void initGraphicsCommands();
-		void initComputeCommands();
 		void initSyncStructures();
 
 		void initImgui();

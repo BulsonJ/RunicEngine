@@ -52,8 +52,6 @@ void Renderer::init(Device* device)
 	m_graphicsDevice = device;
 
 	createSwapchain();
-	initGraphicsCommands();
-	initComputeCommands();
 	initSyncStructures();
 
 	m_pipelineManager = std::make_unique<PipelineManager>(m_graphicsDevice->m_device);
@@ -793,66 +791,6 @@ void Renderer::initImgui()
 		});
 }
 
-void Renderer::initGraphicsCommands()
-{
-	ZoneScoped;
-
-	const VkCommandPoolCreateInfo m_graphicsCommandPoolCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-		.pNext = nullptr,
-		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = m_graphicsDevice->m_graphics.queueFamily
-	};
-
-	for (int i = 0; i < 2; ++i)
-	{
-		VkCommandPool* commandPool = &m_graphicsDevice->m_graphics.commands[i].pool;
-
-		vkCreateCommandPool(m_graphicsDevice->m_device, &m_graphicsCommandPoolCreateInfo, nullptr, commandPool);
-
-		const VkCommandBufferAllocateInfo bufferAllocInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-			.pNext = nullptr,
-			.commandPool = *commandPool,
-			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-			.commandBufferCount = 1
-		};
-
-		vkAllocateCommandBuffers(m_graphicsDevice->m_device, &bufferAllocInfo, &m_graphicsDevice->m_graphics.commands[i].buffer);
-	}
-
-
-	const VkCommandPoolCreateInfo uploadCommandPoolInfo = VulkanInit::commandPoolCreateInfo(m_graphicsDevice->m_graphics.queueFamily);
-	vkCreateCommandPool(m_graphicsDevice->m_device, &uploadCommandPoolInfo, nullptr, &m_graphicsDevice->m_uploadContext.commandPool);
-
-	const VkCommandBufferAllocateInfo cmdAllocInfo = VulkanInit::commandBufferAllocateInfo(m_graphicsDevice->m_uploadContext.commandPool, 1);
-	vkAllocateCommandBuffers(m_graphicsDevice->m_device, &cmdAllocInfo, &m_graphicsDevice->m_uploadContext.commandBuffer);
-}
-
-void Renderer::initComputeCommands(){
-	ZoneScoped;
-	const VkCommandPoolCreateInfo computeCommandPoolCreateInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-		.pNext = nullptr,
-		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-		.queueFamilyIndex = m_graphicsDevice->m_compute.queueFamily
-	};
-
-	VkCommandPool* commandPool = &m_graphicsDevice->m_compute.commands[0].pool;
-
-	vkCreateCommandPool(m_graphicsDevice->m_device, &computeCommandPoolCreateInfo, nullptr, commandPool);
-
-	const VkCommandBufferAllocateInfo bufferAllocInfo{
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-		.pNext = nullptr,
-		.commandPool = *commandPool,
-		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-		.commandBufferCount = 1
-	};
-
-	vkAllocateCommandBuffers(m_graphicsDevice->m_device, &bufferAllocInfo, &m_graphicsDevice->m_compute.commands[0].buffer);
-}
-
 void Renderer::initSyncStructures()
 {
 	ZoneScoped;
@@ -879,10 +817,11 @@ void Renderer::initSyncStructures()
 
 
 	const VkFenceCreateInfo uploadFenceCreateInfo = VulkanInit::fenceCreateInfo();
-	vkCreateFence(m_graphicsDevice->m_device, &uploadFenceCreateInfo, nullptr, &m_graphicsDevice->m_uploadContext.uploadFence);
+	vkCreateFence(m_graphicsDevice -> m_device, &uploadFenceCreateInfo, nullptr, &m_graphicsDevice -> m_uploadContext.uploadFence);
 
 
 }
+
 
 void Renderer::initShaders()
 {
@@ -1065,8 +1004,6 @@ void Renderer::deinit()
 
 	destroySwapchain();
 
-	delete ResourceManager::ptr;
-
 	m_pipelineManager->Deinit();
 	vkDestroyDescriptorPool(m_graphicsDevice->m_device, m_scenePool, nullptr);
 	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_sceneSetLayout, nullptr);
@@ -1074,7 +1011,6 @@ void Renderer::deinit()
 	vkDestroyDescriptorSetLayout(m_graphicsDevice->m_device, m_globalSetLayout, nullptr);
 
 	vkDestroyFence(m_graphicsDevice->m_device, m_graphicsDevice->m_uploadContext.uploadFence, nullptr);
-	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_uploadContext.commandPool, nullptr);
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
@@ -1083,9 +1019,7 @@ void Renderer::deinit()
 		vkDestroyFence(m_graphicsDevice->m_device, m_frame[i].renderFen, nullptr);
 	}
 
-	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_graphics.commands[0].pool, nullptr);
-	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_graphics.commands[1].pool, nullptr);
-	vkDestroyCommandPool(m_graphicsDevice->m_device, m_graphicsDevice->m_compute.commands[0].pool, nullptr);
+
 }
 
 Runic::MeshHandle Renderer::uploadMesh(const Runic::MeshDesc& mesh)

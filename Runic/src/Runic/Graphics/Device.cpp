@@ -10,6 +10,7 @@
 #include <common/TracySystem.hpp>
 
 #include "Runic/Graphics/ResourceManager.h"
+#include "Runic/Graphics/Internal/VulkanInit.h"
 #include "Runic/Log.h"
 
 using namespace Runic;
@@ -19,10 +20,20 @@ void Device::init(Window* window)
 	m_window = window;
 
 	initVulkan();
+	initGraphicsCommands();
+	initComputeCommands();
 }
 
 void Device::deinit()
 {
+	delete ResourceManager::ptr;
+
+	vkDestroyCommandPool(m_device, m_uploadContext.commandPool, nullptr);
+
+	vkDestroyCommandPool(m_device, m_graphics.commands[0].pool, nullptr);
+	vkDestroyCommandPool(m_device, m_graphics.commands[1].pool, nullptr);
+	vkDestroyCommandPool(m_device, m_compute.commands[0].pool, nullptr);
+
 	vmaDestroyAllocator(m_allocator);
 	vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
 	vkb::destroy_debug_utils_messenger(m_instance, m_debugMessenger);
@@ -103,4 +114,65 @@ void Runic::Device::initVulkan()
 	LOG_CORE_INFO("Vulkan Initialised");
 }
 
+
+void Device::initGraphicsCommands()
+{
+	ZoneScoped;
+
+	const VkCommandPoolCreateInfo m_graphicsCommandPoolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = m_graphics.queueFamily
+	};
+
+	for (int i = 0; i < 2; ++i)
+	{
+		VkCommandPool* commandPool = &m_graphics.commands[i].pool;
+
+		vkCreateCommandPool(m_device, &m_graphicsCommandPoolCreateInfo, nullptr, commandPool);
+
+		const VkCommandBufferAllocateInfo bufferAllocInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			.pNext = nullptr,
+			.commandPool = *commandPool,
+			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			.commandBufferCount = 1
+		};
+
+		vkAllocateCommandBuffers(m_device, &bufferAllocInfo, &m_graphics.commands[i].buffer);
+	}
+
+
+	const VkCommandPoolCreateInfo uploadCommandPoolInfo = VulkanInit::commandPoolCreateInfo(m_graphics.queueFamily);
+	vkCreateCommandPool(m_device, &uploadCommandPoolInfo, nullptr, &m_uploadContext.commandPool);
+
+	const VkCommandBufferAllocateInfo cmdAllocInfo = VulkanInit::commandBufferAllocateInfo(m_uploadContext.commandPool, 1);
+	vkAllocateCommandBuffers(m_device, &cmdAllocInfo, &m_uploadContext.commandBuffer);
+}
+
+void Device::initComputeCommands()
+{
+	ZoneScoped;
+	const VkCommandPoolCreateInfo computeCommandPoolCreateInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+		.queueFamilyIndex = m_compute.queueFamily
+	};
+
+	VkCommandPool* commandPool = &m_compute.commands[0].pool;
+
+	vkCreateCommandPool(m_device, &computeCommandPoolCreateInfo, nullptr, commandPool);
+
+	const VkCommandBufferAllocateInfo bufferAllocInfo{
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+		.pNext = nullptr,
+		.commandPool = *commandPool,
+		.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+		.commandBufferCount = 1
+	};
+
+	vkAllocateCommandBuffers(m_device, &bufferAllocInfo, &m_compute.commands[0].buffer);
+}
 
