@@ -411,7 +411,6 @@ void Device::createSwapchain()
 			.usage = ImageCreateInfo::Usage::COLOR
 		});
 
-
 	m_depthImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
 			.imageInfo = m_depthImageInfo,
 			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,

@@ -73,6 +73,9 @@ namespace Runic
 		void WaitIdle();
 		void WaitRender();
 
+		ImageHandle GetRenderImage() { return m_renderImage; };
+		ImageHandle GetDepthImage() { return m_depthImage; };
+
 		/** Functions:
 			- Resources
 				-Buffers
@@ -119,11 +122,6 @@ namespace Runic
 		ImTextureID m_imguiRenderTexture;
 		ImTextureID m_imguiDepthTexture;
 
-		// Create render target function that caches these, rebuilds them on recreate swapchain?
-		// Aren't stricly tied to device, just Renderer that is really deciding to create them as an extra implementation detail
-		ImageHandle m_renderImage;
-		ImageHandle m_depthImage;
-
 		VkSampler m_defaultSampler;
 
 		std::unique_ptr<PipelineManager> m_pipelineManager;
@@ -142,5 +140,10 @@ namespace Runic
 		void initImguiRenderpass();
 		void initImgui();
 		void initImguiRenderImages();
+
+		// Create render target function that caches these, rebuilds them on recreate swapchain?
+		// Aren't strictly tied to device, just Renderer that is really deciding to create them as an extra implementation detail
+		ImageHandle m_renderImage;
+		ImageHandle m_depthImage;
 	};
 }

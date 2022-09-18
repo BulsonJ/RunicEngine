@@ -267,7 +267,7 @@ void Renderer::Draw(Camera* const camera)
 	};
 
 	VkImageMemoryBarrier2 renderImgMemBarrier = presentImgMemBarrier;
-	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(m_graphicsDevice->m_renderImage).image;
+	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(m_graphicsDevice->GetRenderImage()).image;
 
 	const VkImageMemoryBarrier2 depthImgMemBarrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -277,7 +277,7 @@ void Renderer::Draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(m_graphicsDevice->m_depthImage).image,
+		.image = ResourceManager::ptr->GetImage(m_graphicsDevice->GetDepthImage()).image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 			.baseMipLevel = 0,
@@ -299,7 +299,7 @@ void Renderer::Draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->m_renderImage).imageView,
+		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->GetRenderImage()).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -310,7 +310,7 @@ void Renderer::Draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo depthAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->m_depthImage).imageView,
+		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->GetDepthImage()).imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
