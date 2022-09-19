@@ -73,6 +73,7 @@ namespace Runic
 		void WaitIdle();
 		void WaitRender();
 
+		Image GetBackBuffer() { return Image{ .image = m_swapchain.images[m_currentSwapchainImage],.imageView = m_swapchain.imageViews[m_currentSwapchainImage] }; }
 		VkFormat GetBackBufferImageFormat() { return m_swapchain.imageFormat; }
 		ImageHandle GetDepthImage() { return m_depthImage; };
 

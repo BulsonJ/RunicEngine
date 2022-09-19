@@ -255,7 +255,7 @@ void Renderer::Draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-		.image = m_graphicsDevice->m_swapchain.images[m_graphicsDevice->m_currentSwapchainImage],
+		.image = m_graphicsDevice->GetBackBuffer().image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.baseMipLevel = 0,
@@ -297,7 +297,7 @@ void Renderer::Draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = m_graphicsDevice->m_swapchain.imageViews[m_graphicsDevice->m_currentSwapchainImage],
+		.imageView = m_graphicsDevice->GetBackBuffer().imageView,
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
