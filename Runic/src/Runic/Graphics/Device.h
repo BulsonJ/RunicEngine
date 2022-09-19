@@ -97,32 +97,10 @@ namespace Runic
 		[[nodiscard]] RenderFrame& GetCurrentFrame() { return m_frame[GetCurrentFrameNumber()]; }
 
 		Window* m_window;
-
-		VkInstance m_instance;
-		VkPhysicalDevice m_chosenGPU;
-		VkPhysicalDeviceProperties m_gpuProperties;
 		VkDevice m_device;
-		DeletionQueue m_instanceDeletionQueue;
-
-		VkSurfaceKHR m_surface;
-		VmaAllocator m_allocator;
-		VkDebugUtilsMessengerEXT m_debugMessenger;
-
 		Runic::QueueContext<FRAME_OVERLAP> m_graphics;
-		Runic::QueueContext<1> m_compute;
-		Runic::UploadContext m_uploadContext;
-
-		Runic::Swapchain m_swapchain;
-		uint32_t m_currentSwapchainImage;
 		bool m_dirtySwapchain {false};
-
-		RenderFrame m_frame[FRAME_OVERLAP];
-		int m_frameNumber{};
-
-		VkRenderPass m_imguiPass;
-
 		VkSampler m_defaultSampler;
-
 		std::unique_ptr<PipelineManager> m_pipelineManager;
 
 	private:
@@ -139,8 +117,28 @@ namespace Runic
 		void initImguiRenderpass();
 		void initImgui();
 
+		VkInstance m_instance;
+		VkPhysicalDevice m_chosenGPU;
+		VkPhysicalDeviceProperties m_gpuProperties;
+		DeletionQueue m_instanceDeletionQueue;
+
+		VkSurfaceKHR m_surface;
+		VmaAllocator m_allocator;
+		VkDebugUtilsMessengerEXT m_debugMessenger;
+
+		Runic::QueueContext<1> m_compute;
+		Runic::UploadContext m_uploadContext;
+
+		Runic::Swapchain m_swapchain;
+		uint32_t m_currentSwapchainImage;
+
+		RenderFrame m_frame[FRAME_OVERLAP];
+		int m_frameNumber{};
 		// Create render target function that caches these, rebuilds them on recreate swapchain?
 		// Aren't strictly tied to device, just Renderer that is really deciding to create them as an extra implementation detail
 		ImageHandle m_depthImage;
+
+		VkRenderPass m_imguiPass;
+
 	};
 }
