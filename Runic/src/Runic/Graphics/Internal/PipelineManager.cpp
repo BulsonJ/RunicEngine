@@ -95,8 +95,8 @@ VkPipeline PipelineManager::createPipelineInternal(PipelineInfo info)
 		.shaderStages = {VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_VERTEX_BIT, vertexShader),
 					VulkanInit::pipelineShaderStageCreateInfo(VK_SHADER_STAGE_FRAGMENT_BIT, fragShader)},
 		.vertexInputInfo = vertexInputInfo,
-		.colorAttachmentFormats = {DEFAULT_FORMAT},
-		.depthAttachmentFormat = {DEPTH_FORMAT}
+		.colorAttachmentFormats = {info.colourFormat},
+		.depthAttachmentFormat = {info.depthFormat}
 	};
 
 	VkPipeline pipeline = PipelineBuild::BuildPipeline(m_device, buildInfo);

@@ -19,7 +19,6 @@
 #include <stb_image.h>
 
 #include "Runic/Graphics/Internal/VulkanInit.h"
-#include "Runic/Editor.h"
 #include "Runic/Log.h"
 
 #include "Runic/Scene/Components/TransformComponent.h"
@@ -267,7 +266,6 @@ void Renderer::Draw(Camera* const camera)
 	};
 
 	VkImageMemoryBarrier2 renderImgMemBarrier = presentImgMemBarrier;
-	renderImgMemBarrier.image = ResourceManager::ptr->GetImage(m_graphicsDevice->GetRenderImage()).image;
 
 	const VkImageMemoryBarrier2 depthImgMemBarrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -299,7 +297,7 @@ void Renderer::Draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo colorAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->GetRenderImage()).imageView,
+		.imageView = m_graphicsDevice->m_swapchain.imageViews[m_graphicsDevice->m_currentSwapchainImage],
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -525,6 +523,8 @@ void Renderer::initShaders()
 		.vertexShader = "../../assets/shaders/default.vert.spv",
 		.fragmentShader = "../../assets/shaders/default.frag.spv",
 		.vertexInputDesc = RenderMesh::getVertexDescription(),
+		.colourFormat = m_graphicsDevice->GetBackBufferImageFormat(),
+		.depthFormat = DEPTH_FORMAT,
 	});
 	m_materials[defaultMaterialName] = { .pipeline = defaultMat, .pipelineLayout = defaultPipelineLayout };
 	LOG_CORE_INFO("Material created: " + defaultMaterialName);
@@ -537,6 +537,8 @@ void Renderer::initShaders()
 		.fragmentShader = "../../assets/shaders/skybox.frag.spv",
 		.vertexInputDesc = RenderMesh::getVertexDescription(),
 		.enableDepthWrite = false,
+		.colourFormat = m_graphicsDevice->GetBackBufferImageFormat(),
+		.depthFormat = DEPTH_FORMAT,
 		});
 	m_materials[skyboxMaterialName] = { .pipeline = skyboxMat, .pipelineLayout = defaultPipelineLayout };
 	LOG_CORE_INFO("Material created: " + skyboxMaterialName);

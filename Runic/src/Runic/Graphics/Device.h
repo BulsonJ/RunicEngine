@@ -73,7 +73,7 @@ namespace Runic
 		void WaitIdle();
 		void WaitRender();
 
-		ImageHandle GetRenderImage() { return m_renderImage; };
+		VkFormat GetBackBufferImageFormat() { return m_swapchain.imageFormat; }
 		ImageHandle GetDepthImage() { return m_depthImage; };
 
 		/** Functions:
@@ -119,8 +119,6 @@ namespace Runic
 		int m_frameNumber{};
 
 		VkRenderPass m_imguiPass;
-		ImTextureID m_imguiRenderTexture;
-		ImTextureID m_imguiDepthTexture;
 
 		VkSampler m_defaultSampler;
 
@@ -139,11 +137,9 @@ namespace Runic
 
 		void initImguiRenderpass();
 		void initImgui();
-		void initImguiRenderImages();
 
 		// Create render target function that caches these, rebuilds them on recreate swapchain?
 		// Aren't strictly tied to device, just Renderer that is really deciding to create them as an extra implementation detail
-		ImageHandle m_renderImage;
 		ImageHandle m_depthImage;
 	};
 }

@@ -26,6 +26,8 @@ namespace Runic
 
 		VertexInputDescription vertexInputDesc;
 		bool enableDepthWrite{ true };
+		VkFormat colourFormat;
+		VkFormat depthFormat;
 	};
 
 	class PipelineManager
