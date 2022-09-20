@@ -55,7 +55,7 @@ void Device::Init(Window* window)
 void Device::Deinit()
 {
 	m_pipelineManager->Deinit();
-	delete ResourceManager::ptr;
+	m_resourceManager->Deinit();
 
 	vkDeviceWaitIdle(m_device);
 
@@ -167,6 +167,41 @@ void Device::WaitRender()
 	}
 }
 
+BufferHandle Device::CreateBuffer(const BufferCreateInfo& createInfo)
+{
+	return m_resourceManager->CreateBuffer(createInfo);
+}
+
+ImageHandle Device::CreateImage(const ImageCreateInfo& createInfo)
+{
+	return m_resourceManager->CreateImage(createInfo);;
+}
+
+VkBuffer Device::GetBuffer(const BufferHandle buffer)
+{
+	return m_resourceManager->GetBuffer(buffer).buffer;
+}
+
+std::size_t Device::GetBufferSize(const BufferHandle buffer)
+{
+	return m_resourceManager->GetBuffer(buffer).size;
+}
+
+VkImage Device::GetImage(const ImageHandle image)
+{
+	return m_resourceManager->GetImage(image).image;
+}
+
+VkImageView Device::GetImageView(const ImageHandle image)
+{
+	return m_resourceManager->GetImage(image).imageView;
+}
+
+void Device::DestroyBuffer(const BufferHandle buffer)
+{
+	m_resourceManager->DestroyBuffer(buffer);
+}
+
 void Device::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function)
 {
 	VkCommandBuffer cmd = m_uploadContext.commandBuffer;
@@ -258,7 +293,7 @@ void Device::initVulkan()
 	};
 	vmaCreateAllocator(&m_allocatorInfo, &m_allocator);
 
-	ResourceManager::ptr = new ResourceManager(m_device, m_allocator);
+	m_resourceManager = std::make_unique<ResourceManager>(m_device, m_allocator);
 	LOG_CORE_INFO("Vulkan Initialised");
 }
 
@@ -357,7 +392,7 @@ void Device::createSwapchain()
 	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
 	const VkImageCreateInfo m_depthImageInfo = VulkanInit::imageCreateInfo(DEPTH_FORMAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, imageExtent);
 
-	m_depthImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{
+	m_depthImage = m_resourceManager->CreateImage(ImageCreateInfo{
 			.imageInfo = m_depthImageInfo,
 			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
 			.usage = ImageCreateInfo::Usage::DEPTH
@@ -375,7 +410,7 @@ void Device::destroySwapchain()
 	vkDestroyRenderPass(m_device, m_imguiPass, nullptr);
 	vkDestroySwapchainKHR(m_device, m_swapchain.swapchain, nullptr);
 
-	ResourceManager::ptr->DestroyImage(m_depthImage);
+	m_resourceManager->DestroyImage(m_depthImage);
 	LOG_CORE_INFO("Destroy Swapchain");
 }
 

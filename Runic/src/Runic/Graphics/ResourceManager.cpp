@@ -2,9 +2,7 @@
 #include "Runic/Graphics/Internal/VulkanInit.h"
 #include "Runic/Graphics/Internal/VulkanCommon.h"
 
-ResourceManager* ResourceManager::ptr = nullptr;
-
-ResourceManager::~ResourceManager()
+void ResourceManager::Deinit()
 {
 	for (const auto& buffer : buffers.m_array)
 	{

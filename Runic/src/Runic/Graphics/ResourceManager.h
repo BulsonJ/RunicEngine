@@ -58,9 +58,8 @@ typedef uint32_t ImageHandle;
 class ResourceManager
 {
 public:
-	static ResourceManager* ptr;
 	ResourceManager(const VkDevice device, const VmaAllocator allocator) : device(device), allocator(allocator) {}
-	~ResourceManager();
+	void Deinit();
 
 	BufferHandle CreateBuffer(const BufferCreateInfo& createInfo);
 	Buffer GetBuffer(const BufferHandle& buffer);

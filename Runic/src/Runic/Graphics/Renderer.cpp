@@ -65,9 +65,9 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 	// fill buffers
 	// binding 0
 		//slot 0 - transform
-	GPUData::DrawData* drawDataSSBO = (GPUData::DrawData*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().drawDataBuffer).ptr;
-	GPUData::Transform* objectSSBO = (GPUData::Transform*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().transformBuffer).ptr;
-	GPUData::Material* materialSSBO = (GPUData::Material*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().materialBuffer).ptr;
+	GPUData::DrawData* drawDataSSBO = m_graphicsDevice->GetMappedData<GPUData::DrawData>(GetCurrentFrame().drawDataBuffer);
+	GPUData::Transform* objectSSBO =  m_graphicsDevice->GetMappedData<GPUData::Transform>(GetCurrentFrame().transformBuffer);
+	GPUData::Material* materialSSBO = m_graphicsDevice->GetMappedData<GPUData::Material>(GetCurrentFrame().materialBuffer);
 
 	for (int i = 0; i < COUNT; ++i)
 	{
@@ -113,12 +113,12 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		//slot 0 - camera
 	//const float rotationSpeed = 0.5f;
 	//camera.view = glm::rotate(camera.view, (m_frameNumber / 120.0f) * rotationSpeed, UP_DIR);
-	GPUData::Camera* cameraSSBO = (GPUData::Camera*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().cameraBuffer).ptr;
+	GPUData::Camera* cameraSSBO = m_graphicsDevice->GetMappedData<GPUData::Camera>(GetCurrentFrame().cameraBuffer);
 	cameraSSBO->view = m_currentCamera->BuildViewMatrix();
 	cameraSSBO->proj = m_currentCamera->BuildProjMatrix();
 	cameraSSBO->pos = {m_currentCamera->GetPosition(), 0.0f};
 		//slot 1 - directionalLight
-	GPUData::DirectionalLight* dirLightSSBO = (GPUData::DirectionalLight*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().dirLightBuffer).ptr;
+	GPUData::DirectionalLight* dirLightSSBO = m_graphicsDevice->GetMappedData<GPUData::DirectionalLight>(GetCurrentFrame().dirLightBuffer);
 	if (m_entities_with_lights.count(LightComponent::LightType::Directional) > 0)
 	{
 		const LightComponent* dirLight = &m_entities_with_lights[LightComponent::LightType::Directional][0]->GetComponent<LightComponent>();
@@ -132,7 +132,7 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		LOG_CORE_WARN("No directional light passed to renderer.");
 		*dirLightSSBO = GPUData::DirectionalLight();
 	}
-	GPUData::PointLight* pointLightSSBO = (GPUData::PointLight*)ResourceManager::ptr->GetBuffer(GetCurrentFrame().pointLightBuffer).ptr;
+	GPUData::PointLight* pointLightSSBO = m_graphicsDevice->GetMappedData<GPUData::PointLight>(GetCurrentFrame().pointLightBuffer);
 	if (m_entities_with_lights.count(LightComponent::LightType::Point) > 0)
 	{
 		if (int numberOfPointLights = m_entities_with_lights[LightComponent::LightType::Point].size(); numberOfPointLights > 0)
@@ -186,11 +186,11 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		if (currentMesh != lastMesh)
 		{
 			const VkDeviceSize offset{ 0 };
-			const VkBuffer vertexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->vertexBuffer).buffer;
+			const VkBuffer vertexBuffer =m_graphicsDevice->GetBuffer(currentMesh->vertexBuffer);
 			vkCmdBindVertexBuffers(cmd, 0, 1, &vertexBuffer, &offset);
 			if (currentMeshDesc->hasIndices())
 			{
-				const VkBuffer indexBuffer = ResourceManager::ptr->GetBuffer(currentMesh->indexBuffer).buffer;
+				const VkBuffer indexBuffer =m_graphicsDevice->GetBuffer(currentMesh->indexBuffer);
 				vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			}
 			lastMesh = currentMesh;
@@ -275,7 +275,7 @@ void Renderer::Draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-		.image = ResourceManager::ptr->GetImage(m_graphicsDevice->GetDepthImage()).image,
+		.image = m_graphicsDevice->GetImage(m_graphicsDevice->GetDepthImage()),
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 			.baseMipLevel = 0,
@@ -308,7 +308,7 @@ void Renderer::Draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo depthAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = ResourceManager::ptr->GetImage(m_graphicsDevice->GetDepthImage()).imageView,
+		.imageView = m_graphicsDevice->GetImageView(m_graphicsDevice->GetDepthImage()),
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -394,13 +394,13 @@ void Renderer::initShaders()
 
 	for (int i = 0; i < FRAME_OVERLAP; ++i)
 	{
-		m_frame[i].drawDataBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::DrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
-		m_frame[i].transformBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::Transform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
-		m_frame[i].materialBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::Material) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		m_frame[i].drawDataBuffer = m_graphicsDevice->CreateBuffer({ .size = sizeof(GPUData::DrawData) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		m_frame[i].transformBuffer =  m_graphicsDevice->CreateBuffer({ .size = sizeof(GPUData::Transform) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
+		m_frame[i].materialBuffer =  m_graphicsDevice->CreateBuffer({ .size = sizeof(GPUData::Material) * MAX_OBJECTS, .usage = GFX::Buffer::Usage::STORAGE });
 
-		m_frame[i].cameraBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::Camera), .usage = GFX::Buffer::Usage::UNIFORM });
-		m_frame[i].dirLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::DirectionalLight), .usage = GFX::Buffer::Usage::UNIFORM });
-		m_frame[i].pointLightBuffer = ResourceManager::ptr->CreateBuffer({ .size = sizeof(GPUData::PointLight) * MAX_POINT_LIGHTS, .usage = GFX::Buffer::Usage::STORAGE });
+		m_frame[i].cameraBuffer =  m_graphicsDevice->CreateBuffer({ .size = sizeof(GPUData::Camera), .usage = GFX::Buffer::Usage::UNIFORM });
+		m_frame[i].dirLightBuffer =  m_graphicsDevice->CreateBuffer({ .size = sizeof(GPUData::DirectionalLight), .usage = GFX::Buffer::Usage::UNIFORM });
+		m_frame[i].pointLightBuffer =  m_graphicsDevice->CreateBuffer({ .size = sizeof(GPUData::PointLight) * MAX_POINT_LIGHTS, .usage = GFX::Buffer::Usage::STORAGE });
 	}
 	// create descriptor layout
 
@@ -480,14 +480,14 @@ void Renderer::initShaders()
 		vkAllocateDescriptorSets(m_graphicsDevice->m_device, &sceneAllocInfo, &m_frame[i].sceneSet);
 
 		VkDescriptorBufferInfo globalBuffers[] = {
-			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].drawDataBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].drawDataBuffer).size },
-			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].transformBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].transformBuffer).size},
-			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].materialBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].materialBuffer).size},
+			{.buffer = m_graphicsDevice->GetBuffer(m_frame[i].drawDataBuffer), .range = m_graphicsDevice->GetBufferSize(m_frame[i].drawDataBuffer) },
+			{.buffer =m_graphicsDevice->GetBuffer(m_frame[i].transformBuffer), .range =m_graphicsDevice->GetBufferSize(m_frame[i].transformBuffer)},
+			{.buffer =m_graphicsDevice->GetBuffer(m_frame[i].materialBuffer), .range =m_graphicsDevice->GetBufferSize(m_frame[i].materialBuffer)},
 		};	
 		VkDescriptorBufferInfo sceneBuffers[] = {
-			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].cameraBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].cameraBuffer).size},
-			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].dirLightBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].dirLightBuffer).size },
-			{.buffer = ResourceManager::ptr->GetBuffer(m_frame[i].pointLightBuffer).buffer, .range = ResourceManager::ptr->GetBuffer(m_frame[i].pointLightBuffer).size }
+			{.buffer =m_graphicsDevice->GetBuffer(m_frame[i].cameraBuffer), .range =m_graphicsDevice->GetBufferSize(m_frame[i].cameraBuffer)},
+			{.buffer =m_graphicsDevice->GetBuffer(m_frame[i].dirLightBuffer), .range =m_graphicsDevice->GetBufferSize(m_frame[i].dirLightBuffer) },
+			{.buffer =m_graphicsDevice->GetBuffer(m_frame[i].pointLightBuffer), .range =m_graphicsDevice->GetBufferSize(m_frame[i].pointLightBuffer) }
 		};
 
 		const VkWriteDescriptorSet globalWrites[] = {
@@ -563,64 +563,58 @@ Runic::MeshHandle Renderer::UploadMesh(const Runic::MeshDesc& mesh)
 	{
 		const size_t bufferSize = mesh.vertices.size() * sizeof(Runic::Vertex);
 
-		BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 			});
 
-		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, mesh.vertices.data(), bufferSize);
+		memcpy(m_graphicsDevice->GetMappedData<void>(stagingBuffer), mesh.vertices.data(), bufferSize);
 
-		renderMesh.vertexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		renderMesh.vertexBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::VERTEX,
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
-
-		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer);
-		const Buffer dst = ResourceManager::ptr->GetBuffer(renderMesh.vertexBuffer);
 
 		m_graphicsDevice->ImmediateSubmit([=](VkCommandBuffer cmd) {
 			VkBufferCopy copy;
 			copy.dstOffset = 0;
 			copy.srcOffset = 0;
 			copy.size = bufferSize;
-			vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
+			vkCmdCopyBuffer(cmd, m_graphicsDevice->GetBuffer(stagingBuffer), m_graphicsDevice->GetBuffer(renderMesh.vertexBuffer), 1, &copy);
 			});
 
-		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
+		m_graphicsDevice->DestroyBuffer(stagingBuffer);
 	}
 
 	if (mesh.hasIndices())
 	{
 		const size_t bufferSize = mesh.indices.size() * sizeof(Runic::MeshDesc::Index);
 
-		BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::SRC,
 			});
 
-		memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, mesh.indices.data(), bufferSize);
+		memcpy(m_graphicsDevice->GetMappedData<void>(stagingBuffer), mesh.indices.data(), bufferSize);
 
-		renderMesh.indexBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+		renderMesh.indexBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::DST,
 			});
-
-		const Buffer src = ResourceManager::ptr->GetBuffer(stagingBuffer);
-		const Buffer dst = ResourceManager::ptr->GetBuffer(renderMesh.indexBuffer);
 
 		m_graphicsDevice->ImmediateSubmit([=](VkCommandBuffer cmd) {
 			VkBufferCopy copy;
 			copy.dstOffset = 0;
 			copy.srcOffset = 0;
 			copy.size = bufferSize;
-			vkCmdCopyBuffer(cmd, src.buffer, dst.buffer, 1, &copy);
+			vkCmdCopyBuffer(cmd, m_graphicsDevice->GetBuffer(stagingBuffer), m_graphicsDevice->GetBuffer(renderMesh.indexBuffer), 1, &copy);
 			});
 
-		ResourceManager::ptr->DestroyBuffer(stagingBuffer);
+		m_graphicsDevice->DestroyBuffer(stagingBuffer);
 	}
 
 	return m_meshes.add(renderMesh);
@@ -638,7 +632,7 @@ Runic::TextureHandle Renderer::UploadTexture(const Runic::Texture& texture)
 
 	const VkDescriptorImageInfo bindlessImageInfo = {
 		.sampler = m_graphicsDevice->m_defaultSampler,
-		.imageView = ResourceManager::ptr->GetImage(m_bindlessImages.get(bindlessHandle)).imageView,
+		.imageView = m_graphicsDevice->GetImageView(m_bindlessImages.get(bindlessHandle)),
 		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 	};
 
@@ -672,7 +666,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texWidth * image.texHeight * 4) };
 	const VkFormat image_format = {image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
 
-	const BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+	const BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = imageSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -680,7 +674,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 
 	//copy data to buffer
 
-	memcpy(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr, image.ptr[0], static_cast<size_t>(imageSize));
+	memcpy(m_graphicsDevice->GetMappedData<void>(stagingBuffer), image.ptr[0], static_cast<size_t>(imageSize));
 
 	const VkExtent3D imageExtent{
 		.width = static_cast<uint32_t>(image.texWidth),
@@ -690,7 +684,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 
 	const VkImageCreateInfo dimg_info = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent);
 
-	ImageHandle newImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_2D });
+	ImageHandle newImage = m_graphicsDevice->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_2D });
 
 	m_graphicsDevice->ImmediateSubmit([&](VkCommandBuffer cmd) {
 		const VkImageSubresourceRange range{
@@ -709,7 +703,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 			.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.image = m_graphicsDevice->GetImage(newImage),
 			.subresourceRange = range,
 		};
 
@@ -732,7 +726,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 			.imageExtent = imageExtent,
 		};
 
-		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+		vkCmdCopyBufferToImage(cmd,m_graphicsDevice->GetBuffer(stagingBuffer), m_graphicsDevice->GetImage(newImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
 		const VkImageMemoryBarrier2 imageBarrier_toReadable{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -742,7 +736,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 			.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
 			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.image = m_graphicsDevice->GetImage(newImage),
 			.subresourceRange = range,
 		};
 
@@ -755,7 +749,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 		vkCmdPipelineBarrier2(cmd, &imgRedableDependencyInfo);
 	});
 
-	ResourceManager::ptr->DestroyBuffer(stagingBuffer);
+	m_graphicsDevice->DestroyBuffer(stagingBuffer);
 
 	return newImage;
 }
@@ -781,7 +775,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(image.texSize) };
 	const VkFormat image_format = { image.m_desc.format == Runic::TextureDesc::Format::DEFAULT ? DEFAULT_FORMAT : NORMAL_FORMAT };
 
-	const BufferHandle stagingBuffer = ResourceManager::ptr->CreateBuffer(BufferCreateInfo{
+	const BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = imageSize * 6,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -789,7 +783,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 
 	for (int i = 0; i < 6; ++i)
 	{
-		memcpy(static_cast<char*>(ResourceManager::ptr->GetBuffer(stagingBuffer).ptr) + (i * imageSize), pixels[i], static_cast<size_t>(image.texSize));
+		memcpy(static_cast<char*>(m_graphicsDevice->GetMappedData<void>(stagingBuffer)) + (i * imageSize), pixels[i], static_cast<size_t>(image.texSize));
 	}
 
 	const VkExtent3D imageExtent{
@@ -800,7 +794,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 
 	const VkImageCreateInfo dimg_info = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, 6);
 
-	ImageHandle newImage = ResourceManager::ptr->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_CUBEMAP });
+	ImageHandle newImage = m_graphicsDevice->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_CUBEMAP });
 
 	m_graphicsDevice->ImmediateSubmit([&](VkCommandBuffer cmd) {
 		const VkImageSubresourceRange range{
@@ -819,7 +813,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 			.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 			.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.image = m_graphicsDevice->GetImage(newImage),
 			.subresourceRange = range,
 		};
 
@@ -842,7 +836,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 			.imageExtent = imageExtent,
 		};
 
-		vkCmdCopyBufferToImage(cmd, ResourceManager::ptr->GetBuffer(stagingBuffer).buffer, ResourceManager::ptr->GetImage(newImage).image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+		vkCmdCopyBufferToImage(cmd,m_graphicsDevice->GetBuffer(stagingBuffer), m_graphicsDevice->GetImage(newImage), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
 		const VkImageMemoryBarrier2 imageBarrier_toReadable{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -852,7 +846,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 			.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
 			.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			.image = ResourceManager::ptr->GetImage(newImage).image,
+			.image = m_graphicsDevice->GetImage(newImage),
 			.subresourceRange = range,
 		};
 
@@ -865,7 +859,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 		vkCmdPipelineBarrier2(cmd, &imgRedableDependencyInfo);
 		});
 
-	ResourceManager::ptr->DestroyBuffer(stagingBuffer);
+	m_graphicsDevice->DestroyBuffer(stagingBuffer);
 
 	return newImage;
 }

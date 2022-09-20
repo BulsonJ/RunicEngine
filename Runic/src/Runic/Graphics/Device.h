@@ -90,6 +90,21 @@ namespace Runic
 		
 		*/
 
+		BufferHandle CreateBuffer(const BufferCreateInfo& createInfo);
+		ImageHandle CreateImage(const ImageCreateInfo& createInfo);
+
+		VkBuffer GetBuffer(const BufferHandle buffer);
+		std::size_t GetBufferSize(const BufferHandle buffer);
+		template<typename T>
+		T* GetMappedData(const BufferHandle buffer)
+		{
+			return reinterpret_cast<T*>(m_resourceManager->GetBuffer(buffer).ptr);
+		}
+		VkImage GetImage(const ImageHandle image);
+		VkImageView GetImageView(const ImageHandle image);
+
+		void DestroyBuffer(const BufferHandle buffer);
+
 		void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)>&& function);
 
 		// Move to private once device functions setup
@@ -121,6 +136,7 @@ namespace Runic
 		VkPhysicalDevice m_chosenGPU;
 		VkPhysicalDeviceProperties m_gpuProperties;
 		DeletionQueue m_instanceDeletionQueue;
+		std::unique_ptr<ResourceManager> m_resourceManager;
 
 		VkSurfaceKHR m_surface;
 		VmaAllocator m_allocator;
