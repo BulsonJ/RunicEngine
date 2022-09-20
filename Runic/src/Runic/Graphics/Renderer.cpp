@@ -179,8 +179,6 @@ void Renderer::drawObjects(VkCommandBuffer cmd, const std::vector<Runic::Entity*
 		};
 		vkCmdPushConstants(cmd, currentMaterialType->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUData::PushConstants), &constants);
 
-		// TODO : Find better way of handling mesh handle
-		// Currently having to recreate handle which is not good.
 		const RenderMesh* currentMesh { &m_meshes.get(object.meshHandle)};
 		const Runic::MeshDesc* currentMeshDesc = { &currentMesh->meshDesc };
 		if (currentMesh != lastMesh)
@@ -247,7 +245,7 @@ void Renderer::Draw(Camera* const camera)
 	vkCmdSetScissor(cmd, 0, 1, &scissor);
 
 	// Why src is NONE, https://github.com/KhronosGroup/Vulkan-Docs/wiki/Synchronization-Examples#interactions-with-semaphores
-	VkImageMemoryBarrier2 presentImgMemBarrier{
+	const VkImageMemoryBarrier2 presentImgMemBarrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 		.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
 		.srcAccessMask = VK_ACCESS_2_NONE,
@@ -265,7 +263,7 @@ void Renderer::Draw(Camera* const camera)
 		}
 	};
 
-	VkImageMemoryBarrier2 renderImgMemBarrier = presentImgMemBarrier;
+	const VkImageMemoryBarrier2 renderImgMemBarrier = presentImgMemBarrier;
 
 	const VkImageMemoryBarrier2 depthImgMemBarrier{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -285,9 +283,9 @@ void Renderer::Draw(Camera* const camera)
 		}
 	};
 
-	VkImageMemoryBarrier2 initialBarriers[] = { presentImgMemBarrier,renderImgMemBarrier, depthImgMemBarrier};
+	const VkImageMemoryBarrier2 initialBarriers[] = { presentImgMemBarrier,renderImgMemBarrier, depthImgMemBarrier};
 
-	VkDependencyInfo presentImgDependencyInfo = {
+	const VkDependencyInfo presentImgDependencyInfo = {
 		.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 		.imageMemoryBarrierCount = std::size(initialBarriers),
 		.pImageMemoryBarriers = initialBarriers,
@@ -375,13 +373,13 @@ void Renderer::initShaders()
 	ZoneScoped;
 
 	// create descriptor pool
-	VkDescriptorPoolSize poolSizes[] =
+	const VkDescriptorPoolSize poolSizes[] =
 	{
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 },
 		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10 },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURES },
 	};
-	VkDescriptorPoolCreateInfo poolCreateInfo{
+	const VkDescriptorPoolCreateInfo poolCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 		.maxSets = 2,
 		.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes)),
@@ -404,14 +402,14 @@ void Renderer::initShaders()
 	}
 	// create descriptor layout
 
-	VkDescriptorBindingFlags flags[] = {
+	const VkDescriptorBindingFlags flags[] = {
 		0,
 		0,
 		0,
 		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
 	};
 
-	VkDescriptorSetLayoutBindingFlagsCreateInfo globalBindingFlags{
+	const VkDescriptorSetLayoutBindingFlagsCreateInfo globalBindingFlags{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
 		.bindingCount = static_cast<uint32_t>(std::size(flags)),
 		.pBindingFlags = flags,
@@ -452,7 +450,7 @@ void Renderer::initShaders()
 
 	uint32_t counts[] = { MAX_TEXTURES };  // Set 0 has a variable count descriptor with a maximum of 32 elements
 
-	VkDescriptorSetVariableDescriptorCountAllocateInfo globalSetCounts = {
+	const VkDescriptorSetVariableDescriptorCountAllocateInfo globalSetCounts = {
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
 		.descriptorSetCount = 1,
 		.pDescriptorCounts = counts
@@ -511,8 +509,8 @@ void Renderer::initShaders()
 		.offset = 0,
 		.size = sizeof(GPUData::PushConstants),
 	};
-	std::vector<VkPushConstantRange> pushConstants = { defaultPushConstants };
-	std::vector<VkDescriptorSetLayout> setLayouts = { m_globalSetLayout, m_sceneSetLayout };
+	const std::vector<VkPushConstantRange> pushConstants = { defaultPushConstants };
+	const std::vector<VkDescriptorSetLayout> setLayouts = { m_globalSetLayout, m_sceneSetLayout };
 
 	VkPipelineLayout defaultPipelineLayout = m_graphicsDevice->m_pipelineManager->CreatePipelineLayout(setLayouts, pushConstants);
 
@@ -563,7 +561,7 @@ Runic::MeshHandle Renderer::UploadMesh(const Runic::MeshDesc& mesh)
 	{
 		const size_t bufferSize = mesh.vertices.size() * sizeof(Runic::Vertex);
 
-		BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
+		const BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::NONE,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -592,7 +590,7 @@ Runic::MeshHandle Renderer::UploadMesh(const Runic::MeshDesc& mesh)
 	{
 		const size_t bufferSize = mesh.indices.size() * sizeof(Runic::MeshDesc::Index);
 
-		BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
+		const BufferHandle stagingBuffer =  m_graphicsDevice->CreateBuffer(BufferCreateInfo{
 			.size = bufferSize,
 			.usage = GFX::Buffer::Usage::INDEX,
 			.transfer = BufferCreateInfo::Transfer::SRC,
@@ -620,15 +618,15 @@ Runic::MeshHandle Renderer::UploadMesh(const Runic::MeshDesc& mesh)
 	return m_meshes.add(renderMesh);
 }
 
-Runic::TextureHandle Renderer::UploadTexture(const Runic::Texture& texture)
+TextureHandle Renderer::UploadTexture(const Texture& texture)
 {
 	if (texture.ptr == nullptr)
 	{
-		return Runic::TextureHandle(0);
+		return TextureHandle(0);
 	}
 
 	const ImageHandle newTextureHandle = (texture.m_desc.type == TextureDesc::Type::TEXTURE_CUBEMAP ? uploadTextureInternalCubemap(texture) : uploadTextureInternal(texture));
-	Runic::TextureHandle bindlessHandle = m_bindlessImages.add(newTextureHandle);
+	const TextureHandle bindlessHandle = m_bindlessImages.add(newTextureHandle);
 
 	const VkDescriptorImageInfo bindlessImageInfo = {
 		.sampler = m_graphicsDevice->m_defaultSampler,
@@ -707,7 +705,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 			.subresourceRange = range,
 		};
 
-		VkDependencyInfo imgDependencyInfo = {
+		const VkDependencyInfo imgDependencyInfo = {
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 			.imageMemoryBarrierCount = 1,
 			.pImageMemoryBarriers = &imageBarrier_toTransfer,
@@ -740,7 +738,7 @@ ImageHandle Renderer::uploadTextureInternal(const Runic::Texture& image)
 			.subresourceRange = range,
 		};
 
-		VkDependencyInfo imgRedableDependencyInfo = {
+		const VkDependencyInfo imgRedableDependencyInfo = {
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 			.imageMemoryBarrierCount = 1,
 			.pImageMemoryBarriers = &imageBarrier_toReadable,
@@ -794,7 +792,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 
 	const VkImageCreateInfo dimg_info = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, imageExtent, VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, 6);
 
-	ImageHandle newImage = m_graphicsDevice->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_CUBEMAP });
+	const ImageHandle newImage = m_graphicsDevice->CreateImage(ImageCreateInfo{ .imageInfo = dimg_info, .imageType = ImageCreateInfo::ImageType::TEXTURE_CUBEMAP });
 
 	m_graphicsDevice->ImmediateSubmit([&](VkCommandBuffer cmd) {
 		const VkImageSubresourceRange range{
@@ -817,7 +815,7 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 			.subresourceRange = range,
 		};
 
-		VkDependencyInfo imgDependencyInfo = {
+		const VkDependencyInfo imgDependencyInfo = {
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 			.imageMemoryBarrierCount = 1,
 			.pImageMemoryBarriers = &imageBarrier_toTransfer,
@@ -850,13 +848,13 @@ ImageHandle Renderer::uploadTextureInternalCubemap(const Runic::Texture& image)
 			.subresourceRange = range,
 		};
 
-		VkDependencyInfo imgRedableDependencyInfo = {
+		const VkDependencyInfo imgReadableDependencyInfo = {
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 			.imageMemoryBarrierCount = 1,
 			.pImageMemoryBarriers = &imageBarrier_toReadable,
 		};
 
-		vkCmdPipelineBarrier2(cmd, &imgRedableDependencyInfo);
+		vkCmdPipelineBarrier2(cmd, &imgReadableDependencyInfo);
 		});
 
 	m_graphicsDevice->DestroyBuffer(stagingBuffer);
