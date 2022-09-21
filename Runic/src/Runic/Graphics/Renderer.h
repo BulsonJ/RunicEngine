@@ -146,6 +146,7 @@ namespace Runic
 
 		Device* m_graphicsDevice;
 		RenderFrameObjects m_frame[FRAME_OVERLAP];
+		RenderTargetHandle m_depthTarget;
 
 		VkDescriptorSetLayout m_globalSetLayout;
 		VkDescriptorPool m_globalPool;

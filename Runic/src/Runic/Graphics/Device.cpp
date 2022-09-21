@@ -177,6 +177,14 @@ ImageHandle Device::CreateImage(const ImageCreateInfo& createInfo)
 	return m_resourceManager->CreateImage(createInfo);;
 }
 
+RenderTargetHandle Device::CreateRenderTarget(bool depth)
+{
+	return m_renderTargets.add(RenderTarget{ 
+			.imageHandle = createRenderTargetImage(depth),
+			.depth = depth
+	});
+}
+
 VkBuffer Device::GetBuffer(const BufferHandle buffer)
 {
 	return m_resourceManager->GetBuffer(buffer).buffer;
@@ -195,6 +203,11 @@ VkImage Device::GetImage(const ImageHandle image)
 VkImageView Device::GetImageView(const ImageHandle image)
 {
 	return m_resourceManager->GetImage(image).imageView;
+}
+
+ImageHandle Device::GetRenderTargetImage(const RenderTargetHandle rendTargetHandle)
+{
+	return m_renderTargets.get(rendTargetHandle).imageHandle;
 }
 
 void Device::DestroyBuffer(const BufferHandle buffer)
@@ -389,14 +402,6 @@ void Device::createSwapchain()
 		.depth = 1,
 	};
 
-	const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(image_format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
-	const VkImageCreateInfo m_depthImageInfo = VulkanInit::imageCreateInfo(DEPTH_FORMAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, imageExtent);
-
-	m_depthImage = m_resourceManager->CreateImage(ImageCreateInfo{
-			.imageInfo = m_depthImageInfo,
-			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
-			.usage = ImageCreateInfo::Usage::DEPTH
-		});
 	LOG_CORE_INFO("Create m_swapchain");
 }
 
@@ -410,7 +415,14 @@ void Device::destroySwapchain()
 	vkDestroyRenderPass(m_device, m_imguiPass, nullptr);
 	vkDestroySwapchainKHR(m_device, m_swapchain.swapchain, nullptr);
 
-	m_resourceManager->DestroyImage(m_depthImage);
+	for (int i = 0; i < m_renderTargets.m_array.size(); i++)
+	{
+		const RenderTarget target = m_renderTargets.m_array[i];
+		if (target.imageHandle != 0U)
+		{
+			m_resourceManager->DestroyImage(GetRenderTargetImage(target.imageHandle));
+		}
+	}
 	LOG_CORE_INFO("Destroy Swapchain");
 }
 
@@ -432,6 +444,16 @@ void Device::recreateSwapchain()
 
 	destroySwapchain();
 	createSwapchain();
+
+	for (int i = 0; i < m_renderTargets.m_array.size(); i++)
+	{
+		RenderTarget* target = &m_renderTargets.m_array[i];
+		if (target->imageHandle != 0U)
+		{
+			target->imageHandle = createRenderTargetImage(target->depth);
+		}
+	}
+
 	initImguiRenderpass();
 }
 
@@ -668,5 +690,40 @@ void Device::initImgui()
 		vkDestroyDescriptorPool(m_device, imguiPool, nullptr);
 		ImGui_ImplVulkan_Shutdown();
 		});
+}
+
+ImageHandle Device::createRenderTargetImage(bool depth)
+{
+	const VkExtent3D imageExtent{
+	.width = static_cast<uint32_t>(m_window->GetWidth()),
+	.height = static_cast<uint32_t>(m_window->GetHeight()),
+	.depth = 1,
+	};
+
+	if (!depth)
+	{
+		const VkImageCreateInfo imageInfo = VulkanInit::imageCreateInfo(DEFAULT_FORMAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, imageExtent);
+
+		const ImageHandle newRT = m_resourceManager->CreateImage(ImageCreateInfo{
+			.imageInfo = imageInfo,
+			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
+			.usage = ImageCreateInfo::Usage::COLOR
+			});
+
+		return newRT;
+	}
+	else
+	{
+		const VkImageCreateInfo depthImageInfo = VulkanInit::imageCreateInfo(DEPTH_FORMAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, imageExtent);
+
+		const ImageHandle newRT = m_resourceManager->CreateImage(ImageCreateInfo{
+			.imageInfo = depthImageInfo,
+			.imageType = ImageCreateInfo::ImageType::TEXTURE_2D,
+			.usage = ImageCreateInfo::Usage::DEPTH
+			});
+
+		return newRT;
+	}
+	return RenderTargetHandle();
 }
 

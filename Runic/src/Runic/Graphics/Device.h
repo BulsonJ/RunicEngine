@@ -59,6 +59,8 @@ namespace Runic
 		VkFence renderFen;
 	};
 
+	typedef uint32_t RenderTargetHandle;
+
 	class Device
 	{
 	public:
@@ -75,7 +77,6 @@ namespace Runic
 
 		Image GetBackBuffer() { return Image{ .image = m_swapchain.images[m_currentSwapchainImage],.imageView = m_swapchain.imageViews[m_currentSwapchainImage] }; }
 		VkFormat GetBackBufferImageFormat() { return m_swapchain.imageFormat; }
-		ImageHandle GetDepthImage() { return m_depthImage; };
 
 		/** Functions:
 			- Resources
@@ -92,6 +93,7 @@ namespace Runic
 
 		BufferHandle CreateBuffer(const BufferCreateInfo& createInfo);
 		ImageHandle CreateImage(const ImageCreateInfo& createInfo);
+		RenderTargetHandle CreateRenderTarget(bool depth);
 
 		VkBuffer GetBuffer(const BufferHandle buffer);
 		std::size_t GetBufferSize(const BufferHandle buffer);
@@ -102,6 +104,7 @@ namespace Runic
 		}
 		VkImage GetImage(const ImageHandle image);
 		VkImageView GetImageView(const ImageHandle image);
+		ImageHandle GetRenderTargetImage(const RenderTargetHandle rendTargetHandle);
 
 		void DestroyBuffer(const BufferHandle buffer);
 
@@ -117,7 +120,6 @@ namespace Runic
 		bool m_dirtySwapchain {false};
 		VkSampler m_defaultSampler;
 		std::unique_ptr<PipelineManager> m_pipelineManager;
-
 	private:
 		void initVulkan();
 
@@ -131,6 +133,8 @@ namespace Runic
 
 		void initImguiRenderpass();
 		void initImgui();
+
+		ImageHandle createRenderTargetImage(bool depth);
 
 		VkInstance m_instance;
 		VkPhysicalDevice m_chosenGPU;
@@ -150,11 +154,15 @@ namespace Runic
 
 		RenderFrame m_frame[FRAME_OVERLAP];
 		int m_frameNumber{};
-		// Create render target function that caches these, rebuilds them on recreate swapchain?
-		// Aren't strictly tied to device, just Renderer that is really deciding to create them as an extra implementation detail
-		ImageHandle m_depthImage;
 
 		VkRenderPass m_imguiPass;
 
+		struct RenderTarget
+		{
+			ImageHandle imageHandle {0U};
+			bool depth{ false };
+		};
+
+		Slotmap<RenderTarget> m_renderTargets;
 	};
 }

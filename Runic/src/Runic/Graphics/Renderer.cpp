@@ -43,7 +43,7 @@ void Renderer::Init(Device* device)
 
 	m_graphicsDevice = device;
 
-
+	m_depthTarget = m_graphicsDevice->CreateRenderTarget(true);
 	initShaders();
 	initShaderData();
 }
@@ -273,7 +273,7 @@ void Renderer::Draw(Camera* const camera)
 		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-		.image = m_graphicsDevice->GetImage(m_graphicsDevice->GetDepthImage()),
+		.image = m_graphicsDevice->GetImage(m_graphicsDevice->GetRenderTargetImage(m_depthTarget)),
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
 			.baseMipLevel = 0,
@@ -306,7 +306,7 @@ void Renderer::Draw(Camera* const camera)
 
 	const VkRenderingAttachmentInfo depthAttachInfo{
 		.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-		.imageView = m_graphicsDevice->GetImageView(m_graphicsDevice->GetDepthImage()),
+		.imageView = m_graphicsDevice->GetImageView(m_graphicsDevice->GetRenderTargetImage(m_depthTarget)),
 		.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
