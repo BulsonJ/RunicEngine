@@ -717,7 +717,7 @@ void Device::recreateRenderTargetImages()
 	for (int i = 0; i < m_renderTargets.m_array.size(); i++)
 	{
 		RenderTarget* target = &m_renderTargets.m_array[i];
-		if (target->imageHandle != 0U)
+		if (target->imageHandle() != 0U)
 		{
 			m_resourceManager->DestroyImage(target->imageHandle);
 			target->imageHandle = createRenderTargetImage(target->depth);

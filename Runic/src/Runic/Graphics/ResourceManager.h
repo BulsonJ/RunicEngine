@@ -52,8 +52,17 @@ struct Image
 	VkImageView imageView{ VK_NULL_HANDLE };
 };
 
-typedef uint32_t BufferHandle;
-typedef uint32_t ImageHandle;
+struct BufferHandle
+{
+	uint32_t handle;
+	uint32_t operator()() const { return handle; };
+};
+
+struct ImageHandle
+{
+	uint32_t handle;
+	uint32_t operator()() const { return handle; };
+};
 
 class ResourceManager
 {

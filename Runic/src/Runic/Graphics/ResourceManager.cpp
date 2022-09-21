@@ -24,7 +24,7 @@ void ResourceManager::Deinit()
 
 Buffer ResourceManager::GetBuffer(const BufferHandle& buffer)
 {
-	return buffers.get(buffer);
+	return buffers.get(buffer());
 }
 
 BufferHandle ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
@@ -67,14 +67,14 @@ BufferHandle ResourceManager::CreateBuffer(const BufferCreateInfo& createInfo)
 	newBuffer.ptr = allocInfo.pMappedData;
 	newBuffer.size = createInfo.size;
 
-	BufferHandle newHandle = buffers.add(newBuffer);
+	const BufferHandle newHandle{ .handle = buffers.add(newBuffer) };
 
 	return newHandle;
 }
 
 void ResourceManager::DestroyBuffer(const BufferHandle& buffer)
 {
-	Buffer& deleteBuffer = buffers.get(buffer);
+	Buffer& deleteBuffer = buffers.get(buffer());
 	if (deleteBuffer.buffer != VK_NULL_HANDLE)
 	{
 		vmaDestroyBuffer(allocator, deleteBuffer.buffer, deleteBuffer.allocation);
@@ -120,19 +120,19 @@ ImageHandle ResourceManager::CreateImage(const ImageCreateInfo& createInfo)
 
 	vkCreateImageView(device, &imageinfo, nullptr, &newImage.imageView);
 
-	ImageHandle newHandle = images.add(newImage);
+	ImageHandle newHandle{ .handle = images.add(newImage) };
 
 	return newHandle;
 }
 
 Image ResourceManager::GetImage(const ImageHandle& image)
 {
-	return images.get(image);
+	return images.get(image());
 }
 
 void ResourceManager::DestroyImage(const ImageHandle& image)
 {
-	Image& deleteImage = images.get(image);
+	Image& deleteImage = images.get(image());
 	if (deleteImage.image != VK_NULL_HANDLE)
 	{
 		vmaDestroyImage(allocator, deleteImage.image, deleteImage.allocation);
