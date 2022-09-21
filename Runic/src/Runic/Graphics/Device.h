@@ -59,7 +59,11 @@ namespace Runic
 		VkFence renderFen;
 	};
 
-	typedef uint32_t RenderTargetHandle;
+	struct RenderTargetHandle
+	{
+		uint32_t handle;
+		uint32_t operator()() const { return handle; };
+	};
 
 	class Device
 	{

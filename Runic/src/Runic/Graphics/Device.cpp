@@ -179,10 +179,12 @@ ImageHandle Device::CreateImage(const ImageCreateInfo& createInfo)
 
 RenderTargetHandle Device::CreateRenderTarget(bool depth)
 {
-	return m_renderTargets.add(RenderTarget{ 
+	return RenderTargetHandle{
+		.handle = m_renderTargets.add(RenderTarget{
 			.imageHandle = createRenderTargetImage(depth),
 			.depth = depth
-	});
+		})
+	};
 }
 
 VkBuffer Device::GetBuffer(const BufferHandle buffer)
@@ -207,7 +209,7 @@ VkImageView Device::GetImageView(const ImageHandle image)
 
 ImageHandle Device::GetRenderTargetImage(const RenderTargetHandle rendTargetHandle)
 {
-	return m_renderTargets.get(rendTargetHandle).imageHandle;
+	return m_renderTargets.get(rendTargetHandle()).imageHandle;
 }
 
 void Device::DestroyBuffer(const BufferHandle buffer)
@@ -420,7 +422,7 @@ void Device::destroySwapchain()
 		const RenderTarget target = m_renderTargets.m_array[i];
 		if (target.imageHandle != 0U)
 		{
-			m_resourceManager->DestroyImage(GetRenderTargetImage(target.imageHandle));
+			m_resourceManager->DestroyImage(target.imageHandle);
 		}
 	}
 	LOG_CORE_INFO("Destroy Swapchain");
@@ -724,6 +726,6 @@ ImageHandle Device::createRenderTargetImage(bool depth)
 
 		return newRT;
 	}
-	return RenderTargetHandle();
+	return ImageHandle();
 }
 
