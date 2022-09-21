@@ -139,6 +139,7 @@ namespace Runic
 		void initImgui();
 
 		ImageHandle createRenderTargetImage(bool depth);
+		void recreateRenderTargetImages();
 
 		VkInstance m_instance;
 		VkPhysicalDevice m_chosenGPU;

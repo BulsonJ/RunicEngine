@@ -416,15 +416,6 @@ void Device::destroySwapchain()
 	}
 	vkDestroyRenderPass(m_device, m_imguiPass, nullptr);
 	vkDestroySwapchainKHR(m_device, m_swapchain.swapchain, nullptr);
-
-	for (int i = 0; i < m_renderTargets.m_array.size(); i++)
-	{
-		const RenderTarget target = m_renderTargets.m_array[i];
-		if (target.imageHandle != 0U)
-		{
-			m_resourceManager->DestroyImage(target.imageHandle);
-		}
-	}
 	LOG_CORE_INFO("Destroy Swapchain");
 }
 
@@ -446,15 +437,7 @@ void Device::recreateSwapchain()
 
 	destroySwapchain();
 	createSwapchain();
-
-	for (int i = 0; i < m_renderTargets.m_array.size(); i++)
-	{
-		RenderTarget* target = &m_renderTargets.m_array[i];
-		if (target->imageHandle != 0U)
-		{
-			target->imageHandle = createRenderTargetImage(target->depth);
-		}
-	}
+	recreateRenderTargetImages();
 
 	initImguiRenderpass();
 }
@@ -727,5 +710,18 @@ ImageHandle Device::createRenderTargetImage(bool depth)
 		return newRT;
 	}
 	return ImageHandle();
+}
+
+void Device::recreateRenderTargetImages()
+{
+	for (int i = 0; i < m_renderTargets.m_array.size(); i++)
+	{
+		RenderTarget* target = &m_renderTargets.m_array[i];
+		if (target->imageHandle != 0U)
+		{
+			m_resourceManager->DestroyImage(target->imageHandle);
+			target->imageHandle = createRenderTargetImage(target->depth);
+		}
+	}
 }
 
