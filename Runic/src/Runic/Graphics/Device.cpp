@@ -395,16 +395,7 @@ void Device::createSwapchain()
 	m_swapchain.imageViews = vkbm_swapchain.get_image_views().value();
 	m_swapchain.imageFormat = vkbm_swapchain.image_format;
 
-	const VkDeviceSize imageSize = { static_cast<VkDeviceSize>(windowExtent.height * windowExtent.width * 4) };
-	const VkFormat image_format{ VK_FORMAT_R8G8B8A8_SRGB };
-
-	const VkExtent3D imageExtent{
-		.width = static_cast<uint32_t>(windowExtent.width),
-		.height = static_cast<uint32_t>(windowExtent.height),
-		.depth = 1,
-	};
-
-	LOG_CORE_INFO("Create m_swapchain");
+	LOG_CORE_INFO("Create Swapchain");
 }
 
 void Device::destroySwapchain()
