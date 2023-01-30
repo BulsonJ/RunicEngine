@@ -6,6 +6,7 @@ layout (location = 1) in vec2 inTexCoords;
 layout (location = 2) in vec3 inNormal;
 layout (location = 3) in vec3 inWorldPos;
 layout (location = 4) in flat int inDrawDataIndex;
+layout (location = 5) in mat3 inTBN;
 
 layout (location = 0) out vec4 outFragColor;
 
@@ -25,70 +26,114 @@ layout(std140,set = 0, binding = 0) readonly buffer DrawDataBuffer{
 	DrawData objects[];
 } drawDataArray;
 
+layout(std140,set = 0, binding = 2) readonly buffer MaterialDataBuffer{
+	MaterialData objects[];
+} materialDataArray;
+
+layout (set = 0, binding = 3) uniform sampler2D bindlessTextures[];
+
 layout(std140,set = 1, binding = 0) uniform  CameraBuffer{
 	mat4 viewMatrix;
 	mat4 projMatrix;
 	vec4 cameraPos;
 } cameraData;
 
-layout(std140,set = 1, binding = 1) uniform  DirLightBuffer{
+struct DirectionalLight{
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
 	vec4 direction;
-	vec4 color;
-	vec4 ambientColor;
+};
+
+struct PointLight{
+	vec4 ambient;
+	vec4 diffuse;
+	vec4 specular;
+	vec4 position;
+
+	float constant;
+    float linear;
+    float quadratic;
+	float padding;
+};
+
+layout(std140,set = 1, binding = 1) uniform  DirLightBuffer{
+	DirectionalLight light;
 } lightData;
 
+layout(std140,set = 1, binding = 2) readonly buffer  PointLightBuffer{
+	PointLight lights[];
+} pointLightData;
 
-layout(std140,set = 0, binding = 2) readonly buffer MaterialDataBuffer{
-	MaterialData objects[];
-} materialDataArray;
 
-layout (set = 0, binding = 3) uniform sampler samp;
-layout (set = 0, binding = 4) uniform texture2D bindlessTextures[];
+vec3 CalcDirLight(DirectionalLight light, MaterialData material, vec3 normal, vec3 viewDir)
+{
+    vec3 lightDir = normalize(-light.direction.xyz);
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    // combine results
+    vec3 ambient  = light.ambient.rgb  * texture(bindlessTextures[(nonuniformEXT(material.textureIndex.x))], inTexCoords).rgb;
+    vec3 diffuse  = light.diffuse.rgb  * diff * texture(bindlessTextures[(nonuniformEXT(material.textureIndex.x))], inTexCoords).rgb;
+    vec3 specular = light.specular.rgb * spec * material.specular.rgb;
+    return (ambient + diffuse + specular);
+}  
+
+vec3 CalcPointLight(PointLight light, MaterialData material, vec3 normal, vec3 fragPos, vec3 viewDir)
+{
+    vec3 lightDir = normalize(light.position.xyz - fragPos);
+    // diffuse shading
+    float diff = max(dot(normal, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    // attenuation
+    float distance    = length(light.position.xyz - fragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + 
+  			     light.quadratic * (distance * distance));    
+    // combine results
+    vec3 ambient  = light.ambient.rgb  * texture(bindlessTextures[(nonuniformEXT(material.textureIndex.x))], inTexCoords).rgb;
+    vec3 diffuse  = light.diffuse.rgb  * diff * texture(bindlessTextures[(nonuniformEXT(material.textureIndex.x))], inTexCoords).rgb;
+    vec3 specular = light.specular.rgb * spec * material.specular.rgb;;
+    ambient  *= attenuation;
+    diffuse  *= attenuation;
+    specular *= attenuation;
+    return (ambient + diffuse + specular);
+} 
 
 void main(void)	{
 	DrawData draw = drawDataArray.objects[inDrawDataIndex];
 	MaterialData matData = materialDataArray.objects[draw.materialIndex];
-	int diffuseIndex = matData.textureIndex.x;
+
 	int normalIndex = matData.textureIndex.y;
+	int emissiveIndex = matData.textureIndex.w;
 
-	// pass to shader
-	vec3 sunlightDirection = lightData.direction.xyz;
-	vec3 sunlightDiffuse = lightData.color.xyz;
-	vec3 sunlightAmbient = lightData.ambientColor.xyz;
-	vec3 materialDiffuseColour = matData.diffuse.rgb;
-	float materialShininess = matData.shininess;
-	vec3 materialSpecular = matData.specular;
-
-	// Diffuse
-	vec3 materialNormal;
-	if (normalIndex >= 0){
-		materialNormal = texture(sampler2D(bindlessTextures[(nonuniformEXT(normalIndex))], samp), inTexCoords).rgb;
+	vec3 norm;
+	if (normalIndex > 0){
+		norm = texture(bindlessTextures[(nonuniformEXT(normalIndex))], inTexCoords).rgb;
+		norm = norm * 2.0 - 1.0;
 	} else {
-		materialNormal = inNormal;
-
+		norm = inNormal;
 	}
-	vec3 norm = normalize(materialNormal);
-	vec3 lightDir = normalize(sunlightDirection);
-	float diff = max(dot(norm, lightDir), 0.0);
-	vec3 diffuse = sunlightDiffuse;
-
-	vec3 materialDiffuse;
-	if (diffuseIndex >= 0){
-		materialDiffuse = texture(sampler2D(bindlessTextures[(nonuniformEXT(diffuseIndex))], samp), inTexCoords).rgb;
-	} else {
-		materialDiffuse = (diff * materialDiffuseColour);
-	}
-	diffuse = diffuse * materialDiffuse;
-
-	//Ambient
-	vec3 ambient = sunlightAmbient * materialDiffuse;
-
-	// Specular
+	norm = normalize(inTBN * norm);
 	vec3 viewDir = normalize(cameraData.cameraPos.xyz - inWorldPos);
-	vec3 reflectDir = reflect(-lightDir, norm);  
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), materialShininess);
-	vec3 specular = (materialSpecular * spec) * sunlightDiffuse;  
 
-	vec3 result = ambient + diffuse + specular;
-	outFragColor = vec4(result,1.0);
+	// phase 1: Directional lighting
+    vec3 result = CalcDirLight(lightData.light, matData, norm, viewDir);
+    // phase 2: Point lights
+    for(int i = 0; i < 4; i++){
+        result += CalcPointLight(pointLightData.lights[i],matData, norm, inWorldPos, viewDir);   
+	}
+
+	// phase 3: add emission
+	vec3 emission;
+	if (emissiveIndex > 0){
+		emission = texture(bindlessTextures[(nonuniformEXT(emissiveIndex))], inTexCoords).rgb;
+	}
+	
+	outFragColor = vec4(result + emission,1.0);
+
+
 }
